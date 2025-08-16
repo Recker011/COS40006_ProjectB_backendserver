@@ -14,7 +14,19 @@ const PORT = process.env.PORT || 3000;
 // middleware
 app.use(express.json());
 app.use(cors());          // allow cross-origin (React / RN dev servers)
-app.use(helmet());        // basic security headers
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "https:", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:"],
+      },
+    },
+  })
+);
+      // basic security headers
 app.use(morgan("dev"));   // concise logs
 
 // serve the dashboard at /

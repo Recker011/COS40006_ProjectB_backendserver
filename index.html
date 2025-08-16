@@ -1,116 +1,200 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Server Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { font-family: ui-sans-serif, system-ui, Arial; }
-    body { margin: 24px; background: #0f1221; color: #e6e9ef; }
-    .card { background:#1a1f36; padding:16px; border-radius:12px; max-width:680px; }
-    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    .dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
-    .ok { background:#22c55e; }
-    .bad { background:#ef4444; }
-    .muted { color:#a0a8c0; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .kv { display:grid; grid-template-columns: 160px 1fr; gap:8px 12px; margin-top:12px; }
-    .small { font-size: 12px; }
-    button { background:#334155; color:#e6e9ef; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; }
-    button:hover { filter: brightness(1.1); }
-  </style>
-</head>
-<body>
-  <h1>Server Dashboard</h1>
-  <div class="card">
-    <div class="row">
-      <div id="statusDot" class="dot bad"></div>
-      <div id="statusText">checking…</div>
-      <button id="toggleBtn" style="margin-left:auto">Pause</button>
-    </div>
-
-    <div class="kv mono">
-      <div class="muted">Last check</div><div id="lastCheck">—</div>
-      <div class="muted">Latency</div><div id="latency">—</div>
-      <div class="muted">Uptime</div><div id="uptime">—</div>
-      <div class="muted">DB status</div><div id="dbStatus">—</div>
-      <div class="muted">DB version</div><div id="dbVersion">—</div>
-    </div>
-
-    <div class="small muted" style="margin-top:12px">
-      Polling <span class="mono">/api/health</span> every 1s
-    </div>
-
-    <pre id="raw" class="mono" style="margin-top:12px; white-space:pre-wrap"></pre>
-  </div>
-
-  <script>
-    const statusDot = document.getElementById("statusDot");
-    const statusText = document.getElementById("statusText");
-    const lastCheck = document.getElementById("lastCheck");
-    const latency = document.getElementById("latency");
-    const uptime = document.getElementById("uptime");
-    const dbStatus = document.getElementById("dbStatus");
-    const dbVersion = document.getElementById("dbVersion");
-    const raw = document.getElementById("raw");
-    const toggleBtn = document.getElementById("toggleBtn");
-
-    let timer = null;
-    let running = true;
-
-    function setState(ok, data, err) {
-      statusDot.className = "dot " + (ok ? "ok" : "bad");
-      statusText.textContent = ok ? "OK" : "ERROR";
-      lastCheck.textContent = new Date().toLocaleString();
-
-      if (ok && data) {
-        latency.textContent = data.latencyMs + " ms";
-        uptime.textContent = data.uptimeSec.toFixed
-          ? data.uptimeSec.toFixed(1) + " s"
-          : String(data.uptimeSec);
-        dbStatus.textContent = data.db?.ok ? "connected" : "error";
-        dbVersion.textContent = data.db?.version || (data.db?.error || "n/a");
-        raw.textContent = JSON.stringify(data, null, 2);
-      } else {
-        dbStatus.textContent = "error";
-        dbVersion.textContent = err ? String(err) : "unknown";
-        latency.textContent = "—";
-        uptime.textContent = "—";
-        raw.textContent = err ? String(err) : "Request failed";
+  <head>
+    <meta charset="utf-8" />
+    <title>Server Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        font-family: ui-sans-serif, system-ui, Arial;
       }
-    }
-
-    async function poll() {
-      const t0 = performance.now();
-      try {
-        const res = await fetch("/api/health", { cache: "no-store" });
-        const data = await res.json();
-        // overwrite latency with client-observed
-        data.latencyMs = Math.round(performance.now() - t0);
-        setState(res.ok && data.ok, data, !res.ok && data ? data : null);
-      } catch (e) {
-        setState(false, null, e);
+      body {
+        margin: 24px;
+        background: #0f1221;
+        color: #e6e9ef;
       }
-    }
+      .card {
+        background: #1a1f36;
+        padding: 16px;
+        border-radius: 12px;
+        max-width: 680px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .ok {
+        background: #22c55e;
+      }
+      .bad {
+        background: #ef4444;
+      }
+      .muted {
+        color: #a0a8c0;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 8px 12px;
+        margin-top: 12px;
+      }
+      .small {
+        font-size: 12px;
+      }
+      button {
+        background: #334155;
+        color: #e6e9ef;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Server Dashboard</h1>
+    <div class="card">
+      <div class="row">
+        <div id="statusDot" class="dot bad"></div>
+        <div id="statusText">checking…</div>
+        <button id="toggleBtn" style="margin-left: auto">Pause</button>
+      </div>
 
-    function start() {
-      if (timer) return;
-      running = true;
-      toggleBtn.textContent = "Pause";
-      poll();
-      timer = setInterval(poll, 1000);
-    }
+      <div class="kv mono">
+        <div class="muted">Last check</div>
+        <div id="lastCheck">—</div>
+        <div class="muted">Latency</div>
+        <div id="latency">—</div>
+        <div class="muted">Uptime</div>
+        <div id="uptime">—</div>
+        <div class="muted">DB status</div>
+        <div id="dbStatus">—</div>
+        <div class="muted">DB version</div>
+        <div id="dbVersion">—</div>
+      </div>
 
-    function stop() {
-      running = false;
-      toggleBtn.textContent = "Resume";
-      clearInterval(timer);
-      timer = null;
-    }
+      <div class="small muted" style="margin-top: 12px">
+        Polling <span class="mono">/api/health</span> every 1s
+      </div>
 
-    toggleBtn.addEventListener("click", () => (running ? stop() : start()));
+      <pre
+        id="raw"
+        class="mono"
+        style="margin-top: 12px; white-space: pre-wrap"
+      ></pre>
+    </div>
 
-    start();
-  </script>
-</body>
+    <script>
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const lastCheck = document.getElementById("lastCheck");
+      const latency = document.getElementById("latency");
+      const uptime = document.getElementById("uptime");
+      const dbStatus = document.getElementById("dbStatus");
+      const dbVersion = document.getElementById("dbVersion");
+      const raw = document.getElementById("raw");
+      const toggleBtn = document.getElementById("toggleBtn");
+
+      let timer = null;
+      let running = true;
+
+      function setState(ok, data, err) {
+        statusDot.className = "dot " + (ok ? "ok" : "bad");
+        statusText.textContent = ok ? "OK" : "ERROR";
+        lastCheck.textContent = new Date().toLocaleString();
+
+        if (ok && data) {
+          latency.textContent = data.latencyMs + " ms";
+          uptime.textContent =
+            typeof data.uptimeSec === "number"
+              ? data.uptimeSec.toFixed(1) + " s"
+              : String(data.uptimeSec);
+          dbStatus.textContent = data.db && data.db.ok ? "connected" : "error";
+          dbVersion.textContent =
+            (data.db && (data.db.version || data.db.error)) || "n/a";
+          raw.textContent = JSON.stringify(data, null, 2);
+        } else {
+          dbStatus.textContent = "error";
+          dbVersion.textContent = err ? String(err) : "unknown";
+          latency.textContent = "—";
+          uptime.textContent = "—";
+          raw.textContent = err ? String(err) : "Request failed";
+        }
+      }
+
+      async function safeParseResponse(res) {
+        // Prefer JSON when the server says it's JSON; otherwise read text.
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          return await res.json();
+        }
+        const text = await res.text();
+        // Try to parse anyway (e.g., proxies sometimes strip headers)
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(
+            `Non-JSON response (${res.status}): ${text.slice(0, 300)}`
+          );
+        }
+      }
+
+      async function poll() {
+        const t0 = performance.now();
+        try {
+          const res = await fetch("/api/health", {
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          });
+          const data = await safeParseResponse(res);
+          // client-observed latency
+          data.latencyMs = Math.round(performance.now() - t0);
+
+          if (!res.ok || !data.ok) {
+            // Show server-provided error body if present
+            return setState(
+              false,
+              null,
+              data?.db?.error || JSON.stringify(data)
+            );
+          }
+          setState(true, data, null);
+        } catch (e) {
+          setState(false, null, e);
+        }
+      }
+
+      function start() {
+        if (timer) return;
+        running = true;
+        toggleBtn.textContent = "Pause";
+        poll();
+        timer = setInterval(poll, 1000);
+      }
+
+      function stop() {
+        running = false;
+        toggleBtn.textContent = "Resume";
+        clearInterval(timer);
+        timer = null;
+      }
+
+      toggleBtn.addEventListener("click", () => (running ? stop() : start()));
+      start();
+    </script>
+  </body>
 </html>
