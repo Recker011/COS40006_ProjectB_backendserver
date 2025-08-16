@@ -1,0 +1,68 @@
+Table: article_tags
+Columns:
+article_id int PK 
+tag_id int PK
+
+Table: article_translations
+Columns:
+id int AI PK 
+article_id int 
+language_code enum('en','bn') 
+title varchar(255) 
+slug varchar(255) 
+excerpt text 
+body longtext 
+created_at timestamp 
+updated_at timestamp
+
+Table: articles
+Columns:
+id int AI PK 
+category_id int 
+author_user_id int 
+status enum('draft','published','hidden') 
+published_at datetime 
+created_at timestamp 
+updated_at timestamp
+
+Table: categories
+Columns:
+id int AI PK 
+code varchar(64) 
+name_en varchar(255) 
+name_bn varchar(255) 
+created_at timestamp
+
+Table: media_assets
+Columns:
+id int AI PK 
+type enum('image','video') 
+url varchar(2048) 
+url_hash char(64) 
+mime_type varchar(128) 
+width int 
+height int 
+duration_seconds int 
+alt_text_en varchar(255) 
+alt_text_bn varchar(255) 
+uploaded_by int 
+created_at timestamp
+
+Table: tags
+Columns:
+id int AI PK 
+code varchar(64) 
+name_en varchar(255) 
+name_bn varchar(255) 
+created_at timestamp
+
+Table: users
+Columns:
+id int AI PK 
+email varchar(255) 
+password_hash varchar(255) 
+display_name varchar(255) 
+role enum('admin','editor','reader') 
+is_active tinyint(1) 
+created_at timestamp 
+updated_at timestamp
