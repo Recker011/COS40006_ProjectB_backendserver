@@ -5,29 +5,47 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const morgan = require("morgan");   // request logs
+const morgan = require("morgan"); // request logs
 const { ping } = require("../db");
+const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+
+// Load environment variables
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// middleware
-app.use(express.json());
-app.use(cors());          // allow cross-origin (React / RN dev servers)
+// Security middleware
+app.use(helmet());
+
+// CORS configuration
 app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        "script-src": ["'self'", "'unsafe-inline'"],
-        "style-src": ["'self'", "https:", "'unsafe-inline'"],
-        "img-src": ["'self'", "data:"],
-      },
-    },
+  cors({
+    origin: process.env.WEB_ORIGIN,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-      // basic security headers
-app.use(morgan("dev"));   // concise logs
+
+// Parse cookies
+app.use(cookieParser());
+
+// Parse JSON with size limit
+app.use(express.json({ limit: "1mb" }));
+
+// Request logging
+app.use(morgan("dev"));
+
+// Rate limiter for login endpoint ONLY
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 requests per window per IP
+  message: "Too many login attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // serve the dashboard at /
 app.get("/", (req, res) => {
@@ -64,9 +82,32 @@ api.get("/health", async (req, res) => {
 
 app.use("/api", api);
 
+// ---- AUTH ROUTES (correctly mounted) ----
+const authRouter = require("./routes/auth"); // adjust path if your file lives elsewhere
+app.use("/auth/login", loginLimiter); // apply limiter to login only
+app.use("/auth", authRouter);
+
 // 404 handler for unknown routes
 app.use((req, res) => {
   res.status(404).json({ ok: false, error: "Not Found" });
+});
+
+// Centralized error handler
+app.use((err, req, res, next) => {
+  // Log error with message and stack in development
+  if (process.env.NODE_ENV === "development") {
+    console.error("Error:", err.message, "\nStack:", err.stack);
+  } else {
+    console.error("Error:", err.message);
+  }
+
+  // If error is meant to be exposed and has a status, use it
+  if (err.expose === true && err.status) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
+  // Otherwise return generic 500 error
+  return res.status(500).json({ error: "Internal server error" });
 });
 
 // start server

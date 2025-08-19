@@ -32,6 +32,7 @@ All connections to the database should use the following parameters:
 - **Username**: `avnadmin`
 - **Password**: `AVNS_aEf_73ImCqt_JMyVyAD`
 - **SSL Mode**: `REQUIRED`
+- **CA Certificate**: Required and must be placed in `certs/ca.pem`
 
 ## MySQL Command Line Client
 
@@ -52,7 +53,10 @@ To connect using the MySQL command line client:
    ```bash
    mysql --user avnadmin --password=AVNS_aEf_73ImCqt_JMyVyAD \
      --host cos40006-projectb-cleaningdb-eaca.c.aivencloud.com \
-     --port 11316 defaultdb
+     --port 11316 \
+     --ssl-mode=REQUIRED \
+     --ssl-ca=certs/ca.pem \
+     defaultdb
    ```
 
 3. To confirm that the connection is working, issue the following query:
@@ -87,7 +91,7 @@ To connect using MySQL Shell:
 
 2. From your terminal, run the following command:
    ```bash
-   mysqlsh --sql 'mysql://avnadmin:AVNS_aEf_73ImCqt_JMyVyAD@cos40006-projectb-cleaningdb-eaca.c.aivencloud.com:11316/defaultdb?ssl-mode=REQUIRED'
+   mysqlsh --sql 'mysql://avnadmin:AVNS_aEf_73ImCqt_JMyVyAD@cos40006-projectb-cleaningdb-eaca.c.aivencloud.com:11316/defaultdb?ssl-mode=VERIFY_IDENTITY&ssl-ca=certs/ca.pem'
    ```
 
 3. To confirm that the connection is working, issue the following query:
@@ -130,6 +134,7 @@ To connect using Python:
      port=11316,
      user="avnadmin",
      write_timeout=timeout,
+     ssl={'ca': 'certs/ca.pem', 'check_hostname': True}
    )
      
    try:
@@ -167,9 +172,9 @@ To connect using PHP:
    // build the DSN including SSL settings
    $conn = "mysql:";
    $conn .= "host=" . $fields["host"];
-   $conn .= ";port=" . $fields["port"];;
+   $conn .= ";port=" . $fields["port"];
    $conn .= ";dbname=defaultdb";
-   $conn .= ";sslmode=verify-ca;sslrootcert=ca.pem";
+   $conn .= ";sslmode=verify_identity;sslrootcert=certs/ca.pem";
 
    try {
      $db = new PDO($conn, $fields["user"], $fields["pass"]);
@@ -226,7 +231,7 @@ To connect using Java:
        }
        Class.forName("com.mysql.cj.jdbc.Driver");
        try (final Connection connection =
-                   DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + databaseName + "?sslmode=require", userName, password);
+                   DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + databaseName + "?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.3&trustCertificateKeyStoreUrl=file:certs/ca.pem", userName, password);
             final Statement statement = connection.createStatement();
             final ResultSet resultSet = statement.executeQuery("SELECT version() AS version")) {
 
@@ -272,7 +277,7 @@ To connect using MySQL Workbench:
    - Hostname: `cos40006-projectb-cleaningdb-eaca.c.aivencloud.com`
    - Port: `11316`
    - Username: `avnadmin`
-   - Password: Ask the password in the Discord endpoint channel
+   - Password: `AVNS_aEf_73ImCqt_JMyVyAD` (also available in `db.js`)
 
 4. Switch to the SSL tab, select the downloaded CA certificate as the SSL CA file and then click OK.
 
@@ -299,6 +304,7 @@ If you encounter issues connecting to the database, try these troubleshooting st
 2. **Check network connectivity**: Verify that you can reach the database host and port:
    ```bash
    telnet cos40006-projectb-cleaningdb-eaca.c.aivencloud.com 11316
+   # Note: Connection test only verifies network connectivity, not SSL or authentication
    ```
 
 3. **Verify credentials**: Double-check the username and password in `db.js`.
