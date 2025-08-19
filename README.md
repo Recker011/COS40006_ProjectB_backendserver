@@ -92,3 +92,71 @@ The server implements several security measures:
 - Helmet middleware for secure HTTP headers
 - Content Security Policy configuration
 - HTTPS database connections with certificate verification
+## Auth env vars
+
+- `PORT`: The port number the server will listen on (default: 3000)
+- `NODE_ENV`: The environment mode (development, production, etc.)
+- `DB_HOST`: The hostname of the MySQL database server
+- `DB_PORT`: The port number of the MySQL database server (default: 3306)
+- `DB_USER`: The username for database authentication
+- `DB_PASSWORD`: The password for database authentication
+- `DB_NAME`: The name of the database to connect to
+- `WEB_ORIGIN`: The exact origin URL for CORS validation (e.g., http://localhost:5173)
+- `JWT_SECRET`: The secret key used to sign JWT tokens (must be long and random)
+- `JWT_EXPIRES_IN`: The expiration time for JWT tokens in seconds (e.g., 3600 = 1 hour)
+- `COOKIE_DOMAIN`: The domain for which the auth cookie is valid (optional, set in production)
+- `COOKIE_SECURE`: Whether the auth cookie should only be sent over HTTPS (set to true in production)
+## Auth quick test
+
+To test the authentication system:
+
+1. Create a `.env` file based on `.env.example` with your configuration:
+```
+PORT=3000
+NODE_ENV=development
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=app_user
+DB_PASSWORD=your_password
+DB_NAME=cos40006
+WEB_ORIGIN=http://localhost:5173
+JWT_SECRET=your_long_random_string_here
+JWT_EXPIRES_IN=3600
+COOKIE_DOMAIN=
+COOKIE_SECURE=false
+```
+
+2. Start the server:
+```bash
+npm run dev
+```
+
+3. Test authentication endpoints with curl:
+
+Login (capture cookie + token):
+```bash
+curl -i -c cookies.txt -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"YOUR_PASSWORD"}' \
+  http://localhost:3000/auth/login
+```
+
+Who am I (cookie-based):
+```bash
+curl -b cookies.txt http://localhost:3000/auth/me
+```
+
+Who am I (Bearer token):
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:3000/auth/me
+```
+
+Logout (clears cookie):
+```bash
+curl -X POST -b cookies.txt http://localhost:3000/auth/logout -i
+```
+
+**Production notes:**
+- Set `COOKIE_SECURE=true` in production
+- `WEB_ORIGIN` must match the exact site origin
+- HTTPS is required for secure cookies in production
