@@ -10,22 +10,11 @@ A minimal, bilingual content model for web/mobile clients. Articles are language
 - `article_tags` ↔ (`articles`, `tags`) (many↔many)
 - `media_assets` (standalone; attach in app logic)
   
-> Suggested FKs:
-> `articles.category_id → categories.id`, `articles.author_user_id → users.id`,
-> `article_translations.article_id → articles.id`,
-> `article_tags.article_id → articles.id`, `article_tags.tag_id → tags.id`,
+> Suggested FKs:  
+> `articles.category_id → categories.id`, `articles.author_user_id → users.id`,  
+> `article_translations.article_id → articles.id`,  
+> `article_tags.article_id → articles.id`, `article_tags.tag_id → tags.id`,  
 > `media_assets.uploaded_by → users.id`.
-
-## Database Connection
-The database is hosted on Aiven with SSL encryption required. Connection details are configured in `db.js` using environment variables with fallback values:
-
-- **Host**: `cos40006-projectb-cleaningdb-eaca.c.aivencloud.com`
-- **Port**: `11316`
-- **Database**: `defaultdb`
-- **Username**: `avnadmin`
-- **SSL**: Required with `ca.pem` certificate
-
-The connection uses a MySQL pool with 10 connections and SSL verification via the CA certificate.
 
 ---
 

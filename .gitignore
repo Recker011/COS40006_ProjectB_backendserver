@@ -2,4 +2,3 @@ node_modules/
 certs/*.pem
 certs/*.js
 db.js
-.env.example
