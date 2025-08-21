@@ -37,6 +37,9 @@ app.get("/", (req, res) => {
 // example API routing pattern (need to extend later)
 const api = express.Router();
 
+// Import authentication routes
+const authRoutes = require('./routes/auth');
+
 // health endpoint: returns server uptime + DB status
 api.get("/health", async (req, res) => {
   const started = Date.now();
@@ -63,6 +66,9 @@ api.get("/health", async (req, res) => {
 });
 
 app.use("/api", api);
+
+// Mount authentication routes
+api.use('/auth', authRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {
