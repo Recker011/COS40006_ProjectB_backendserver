@@ -59,10 +59,11 @@ created_at timestamp
 Table: users
 Columns:
 id int AI PK 
-email varchar(255) 
+email varchar(191) 
 password_hash varchar(255) 
 display_name varchar(255) 
 role enum('admin','editor','reader') 
 is_active tinyint(1) 
 created_at timestamp 
-updated_at timestamp
+updated_at timestamp 
+last_login_at datetime
