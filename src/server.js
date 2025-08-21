@@ -40,6 +40,9 @@ const api = express.Router();
 // Import authentication routes
 const authRoutes = require('./routes/auth');
 
+// Import article routes
+const articleRoutes = require('./routes/articles');
+
 // health endpoint: returns server uptime + DB status
 api.get("/health", async (req, res) => {
   const started = Date.now();
@@ -69,6 +72,9 @@ app.use("/api", api);
 
 // Mount authentication routes
 api.use('/auth', authRoutes);
+
+// Mount article routes
+api.use('/articles', articleRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {

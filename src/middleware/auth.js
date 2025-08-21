@@ -2,7 +2,7 @@
 // JWT authentication middleware for the Information Dissemination Platform
 
 const jwt = require('jsonwebtoken');
-const { query } = require('../../../db');
+const { query, pool } = require('../../db');
 
 /**
  * Verify JWT token and attach user to request

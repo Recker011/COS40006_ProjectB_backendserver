@@ -37,6 +37,156 @@
   - `401 Unauthorized`: Invalid credentials
   - `500 Internal Server Error`: Server processing error
 
+
+### Article Management
+
+#### List/Search Articles
+- **Endpoint**: `/api/articles`
+- **Method**: GET
+- **Query Params**:
+  - `search`: (optional) Search term to filter articles
+- **Response**:
+```json
+[
+  {
+    "id": "1",
+    "title": "Sample Article",
+    "content": "Article content...",
+    "image_url": "https://example.com/image.jpg",
+    "created_at": "2025-08-20T12:34:56.789Z",
+    "updated_at": "2025-08-20T12:34:56.789Z"
+  }
+]
+```
+
+#### Get Single Article
+- **Endpoint**: `/api/articles/:id`
+- **Method**: GET
+- **Response**: Same structure as list endpoint
+
+#### Create Article (Admin/Editor only)
+- **Endpoint**: `/api/articles`
+- **Method**: POST
+- **Request Body**:
+```json
+{
+  "title": "New Article",
+  "content": "Article content...",
+  "image_url": "https://example.com/image.jpg"
+}
+```
+- **Response**: Created article object
+
+#### Update Article (Admin/Editor only)
+- **Endpoint**: `/api/articles/:id`
+- **Method**: PUT
+- **Request Body**: Same as create
+- **Response**: Updated article object
+
+#### Delete Article (Admin/Editor only)
+- **Endpoint**: `/api/articles/:id`
+- **Method**: DELETE
+- **Response**: 204 No Content
+
+#### Admin Utilities
+- **Endpoint**: `/api/articles` (DELETE) and `/api/articles/clear` (POST)
+- **Method**: DELETE/POST
+- **Description**: Clear all articles (Admin only)
+- **Response**: 204 No Content
+
+### Testing Article Endpoints
+
+#### List Articles
+```bash
+curl -X GET http://localhost:3000/api/articles
+```
+
+A successful response will look like:
+```json
+[
+  {
+    "id": "1",
+    "title": "Emergency Preparedness Guide",
+    "content": "Comprehensive guide for emergency situations...",
+    "image_url": "https://example.com/emergency.jpg",
+    "created_at": "2025-08-20T12:34:56.789Z",
+    "updated_at": "2025-08-20T12:34:56.789Z"
+  }
+]
+```
+
+#### Search Articles
+```bash
+curl -X GET "http://localhost:3000/api/articles?search=emergency"
+```
+
+Response structure matches list endpoint with filtered results.
+
+#### Get Single Article
+```bash
+curl -X GET http://localhost:3000/api/articles/1
+```
+
+Successful response:
+```json
+{
+  "id": "1",
+  "title": "Emergency Preparedness Guide",
+  "content": "Comprehensive guide for emergency situations...",
+  "image_url": "https://example.com/emergency.jpg",
+  "created_at": "2025-08-20T12:34:56.789Z",
+  "updated_at": "2025-08-20T12:34:56.789Z"
+}
+```
+
+#### Create Article (Authenticated)
+```bash
+curl -X POST http://localhost:3000/api/articles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"title":"New Article","content":"Article content...","image_url":"https://example.com/image.jpg"}'
+```
+
+Success response (201 Created):
+```json
+{
+  "id": "2",
+  "title": "New Article",
+  "content": "Article content...",
+  "image_url": "https://example.com/image.jpg",
+  "created_at": "2025-08-21T07:20:30.264Z",
+  "updated_at": "2025-08-21T07:20:30.264Z"
+}
+```
+
+#### Update Article (Authenticated)
+```bash
+curl -X PUT http://localhost:3000/api/articles/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"title":"Updated Title","content":"New content..."}'
+```
+
+Success response shows updated values:
+```json
+{
+  "id": "1",
+  "title": "Updated Title",
+  "content": "New content...",
+  "image_url": "https://example.com/emergency.jpg",
+  "created_at": "2025-08-20T12:34:56.789Z",
+  "updated_at": "2025-08-21T07:20:30.264Z"
+}
+```
+
+#### Delete Article (Authenticated)
+```bash
+curl -X DELETE http://localhost:3000/api/articles/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Successful deletion returns 204 No Content.
+
 ## Testing the Endpoints
 
 ### Testing the Health Endpoint
