@@ -70,6 +70,14 @@ app.use((req, res) => {
 });
 
 // start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  
+  // Check database connection
+  try {
+    const version = await ping();
+    console.log(`Database connection healthy: MySQL ${version}`);
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+  }
 });
