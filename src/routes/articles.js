@@ -352,6 +352,7 @@ router.post("/", authenticate, async (req, res) => {
  * Response: Updated article object
  */
 router.put("/:id", authenticate, async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
     const { title, content, image_url } = req.body;
@@ -366,16 +367,19 @@ router.put("/:id", authenticate, async (req, res) => {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
-    const { rows: articleRows } = await query(
-      "SELECT id, created_at FROM articles WHERE id = ?",
-      [id]
-    );
-    if (!articleRows || articleRows.length === 0) {
-      return res.status(404).json({ error: "Article not found" });
-    }
-
-    const connection = await pool.getConnection();
     await connection.beginTransaction();
+
+      // Verify article exists and is published within transaction
+      const [articleRows] = await connection.execute(
+        "SELECT id, created_at FROM articles WHERE id = ? AND status = 'published' FOR UPDATE",
+        [id]
+      );
+      
+      if (!articleRows || articleRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: "Published article not found" });
+      }
+
 
     try {
       // Update English translation (also update slug with uniqueness)
@@ -432,6 +436,8 @@ router.put("/:id", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error updating article:", error);
     res.status(500).json({ error: "Failed to update article" });
+  } finally {
+    connection.release();
   }
 });
 
@@ -442,6 +448,7 @@ router.put("/:id", authenticate, async (req, res) => {
  * Response: 204 No Content
  */
 router.delete("/:id", authenticate, async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
 
@@ -452,23 +459,24 @@ router.delete("/:id", authenticate, async (req, res) => {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
-    const { rows } = await query("SELECT id FROM articles WHERE id = ?", [id]);
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "Article not found" });
-    }
-
-    const connection = await pool.getConnection();
     await connection.beginTransaction();
 
+      // Verify article exists and is published within transaction
+      const [articleRows] = await connection.execute(
+        "SELECT id FROM articles WHERE id = ? AND status = 'published' FOR UPDATE",
+        [id]
+      );
+      
+      if (!articleRows || articleRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: "Published article not found" });
+      }
+
+
     try {
-      await connection.execute(
-        "DELETE FROM article_translations WHERE article_id = ?",
-        [id]
-      );
-      await connection.execute(
-        "DELETE FROM article_tags WHERE article_id = ?",
-        [id]
-      );
+      // Delete in proper referential order
+      await connection.execute("DELETE FROM article_tags WHERE article_id = ?", [id]);
+      await connection.execute("DELETE FROM article_translations WHERE article_id = ?", [id]);
       await connection.execute("DELETE FROM media_assets WHERE id = ?", [id]);
       await connection.execute("DELETE FROM articles WHERE id = ?", [id]);
 
@@ -483,6 +491,8 @@ router.delete("/:id", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Error deleting article:", error);
     res.status(500).json({ error: "Failed to delete article" });
+  } finally {
+    connection.release();
   }
 });
 

@@ -1,200 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Server Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      :root {
-        font-family: ui-sans-serif, system-ui, Arial;
-      }
-      body {
-        margin: 24px;
-        background: #0f1221;
-        color: #e6e9ef;
-      }
-      .card {
-        background: #1a1f36;
-        padding: 16px;
-        border-radius: 12px;
-        max-width: 680px;
-      }
-      .row {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        display: inline-block;
-      }
-      .ok {
-        background: #22c55e;
-      }
-      .bad {
-        background: #ef4444;
-      }
-      .muted {
-        color: #a0a8c0;
-      }
-      .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-      .kv {
-        display: grid;
-        grid-template-columns: 160px 1fr;
-        gap: 8px 12px;
-        margin-top: 12px;
-      }
-      .small {
-        font-size: 12px;
-      }
-      button {
-        background: #334155;
-        color: #e6e9ef;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 12px;
-        cursor: pointer;
-      }
-      button:hover {
-        filter: brightness(1.1);
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Server Dashboard</h1>
-    <div class="card">
-      <div class="row">
-        <div id="statusDot" class="dot bad"></div>
-        <div id="statusText">checking…</div>
-        <button id="toggleBtn" style="margin-left: auto">Pause</button>
-      </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Capabilities Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Server Capabilities Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="#real-time-updates">Real-time Updates</a></li>
+                <li><a href="#user-interaction">User Interaction</a></li>
+                <li><a href="#api-demonstrations">API Demonstrations</a></li>
+            </ul>
+        </nav>
+    </header>
 
-      <div class="kv mono">
-        <div class="muted">Last check</div>
-        <div id="lastCheck">—</div>
-        <div class="muted">Latency</div>
-        <div id="latency">—</div>
-        <div class="muted">Uptime</div>
-        <div id="uptime">—</div>
-        <div class="muted">Database</div>
-        <div id="dbStatus">—</div>
-        <div class="muted">MySQL Version</div>
-        <div id="dbVersion">—</div>
-      </div>
+    <main>
 
-      <div class="small muted" style="margin-top: 12px">
-        Polling <span class="mono">/api/health</span> every 1s
-      </div>
+        <section id="real-time-updates" class="dashboard-section">
+            <h2>Real-time Updates</h2>
+            <div class="log-container">
+                <h3>Server Logs</h3>
+                <ul id="server-logs">
+                    <li>[2025-08-22 01:00:00] Server started.</li>
+                </ul>
+            </div>
+        </section>
 
-      <pre
-        id="raw"
-        class="mono"
-        style="margin-top: 12px; white-space: pre-wrap"
-      ></pre>
-    </div>
+        <section id="user-interaction" class="dashboard-section">
+            <h2>User Interaction</h2>
+            <div class="interaction-panel">
+                <button id="refresh-data">Refresh Data</button>
+                <input type="text" id="user-input" placeholder="Enter command...">
+                <button id="send-command">Send Command</button>
+            </div>
+            <div class="response-area">
+                <h3>Server Response</h3>
+                <p id="server-response">No response yet.</p>
+            </div>
+        </section>
 
-    <script>
-      const statusDot = document.getElementById("statusDot");
-      const statusText = document.getElementById("statusText");
-      const lastCheck = document.getElementById("lastCheck");
-      const latency = document.getElementById("latency");
-      const uptime = document.getElementById("uptime");
-      const dbStatus = document.getElementById("dbStatus");
-      const dbVersion = document.getElementById("dbVersion");
-      const raw = document.getElementById("raw");
-      const toggleBtn = document.getElementById("toggleBtn");
+        <section id="api-demonstrations" class="dashboard-section">
+            <h2>API Demonstrations</h2>
 
-      let timer = null;
-      let running = true;
+            <div class="api-demo-section">
+                <h3>GET /api/health</h3>
+                <p>Checks server and database health.</p>
+                <button id="health-check-btn">Execute</button>
+                <pre><code id="health-check-response"></code></pre>
+            </div>
 
-      function setState(ok, data, err) {
-        statusDot.className = "dot " + (ok ? "ok" : "bad");
-        statusText.textContent = ok ? "OK" : "ERROR";
-        lastCheck.textContent = new Date().toLocaleString();
+            <div class="api-demo-section">
+                <h3>POST /api/auth/login</h3>
+                <p>Authenticates a user and returns a JWT token.</p>
+                <input type="email" id="login-email" placeholder="Email" value="test@example.com">
+                <input type="password" id="login-password" placeholder="Password" value="testpassword">
+                <button id="login-btn">Execute</button>
+                <pre><code id="login-response"></code></pre>
+                <p><strong>Current Token:</strong> <span id="current-token">None</span></p>
+            </div>
 
-        if (ok && data) {
-          latency.textContent = data.latencyMs + " ms";
-          uptime.textContent =
-            typeof data.uptimeSec === "number"
-              ? data.uptimeSec.toFixed(1) + " s"
-              : String(data.uptimeSec);
-          dbStatus.textContent = data.db && data.db.ok ? "connected" : "error";
-          dbVersion.textContent =
-            (data.db && (data.db.version || data.db.error)) || "n/a";
-          raw.textContent = JSON.stringify(data, null, 2);
-        } else {
-          dbStatus.textContent = "error";
-          dbVersion.textContent = err ? String(err) : "unknown";
-          latency.textContent = "—";
-          uptime.textContent = "—";
-          raw.textContent = err ? String(err) : "Request failed";
-        }
-      }
+            <div class="api-demo-section">
+                <h3>GET /api/articles</h3>
+                <p>Lists all articles or searches by keyword.</p>
+                <input type="text" id="articles-search-input" placeholder="Search keyword (optional)">
+                <button id="articles-get-btn">Execute</button>
+                <pre><code id="articles-get-response"></code></pre>
+            </div>
 
-      async function safeParseResponse(res) {
-        // Prefer JSON when the server says it's JSON; otherwise read text.
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          return await res.json();
-        }
-        const text = await res.text();
-        // Try to parse anyway (e.g., proxies sometimes strip headers)
-        try {
-          return JSON.parse(text);
-        } catch {
-          throw new Error(
-            `Non-JSON response (${res.status}): ${text.slice(0, 300)}`
-          );
-        }
-      }
+            <div class="api-demo-section">
+                <h3>GET /api/articles/:id</h3>
+                <p>Retrieves a single article by ID.</p>
+                <input type="text" id="article-id-input" placeholder="Article ID">
+                <button id="article-get-single-btn">Execute</button>
+                <pre><code id="article-get-single-response"></code></pre>
+            </div>
 
-      async function poll() {
-        const t0 = performance.now();
-        try {
-          const res = await fetch("/api/health", {
-            cache: "no-store",
-            headers: { Accept: "application/json" },
-          });
-          const data = await safeParseResponse(res);
-          // client-observed latency
-          data.latencyMs = Math.round(performance.now() - t0);
+            <div class="api-demo-section">
+                <h3>POST /api/articles</h3>
+                <p>Creates a new article (requires authentication).</p>
+                <input type="text" id="article-create-title" placeholder="Title">
+                <textarea id="article-create-content" placeholder="Content"></textarea>
+                <input type="text" id="article-create-image" placeholder="Image URL (optional)">
+                <button id="article-create-btn">Execute</button>
+                <pre><code id="article-create-response"></code></pre>
+            </div>
 
-          if (!res.ok || !data.ok) {
-            // Show server-provided error body if present
-            return setState(
-              false,
-              null,
-              data?.db?.error || JSON.stringify(data)
-            );
-          }
-          setState(true, data, null);
-        } catch (e) {
-          setState(false, null, e);
-        }
-      }
+            <div class="api-demo-section">
+                <h3>PUT /api/articles/:id</h3>
+                <p>Updates an existing article (requires authentication).</p>
+                <input type="text" id="article-update-id" placeholder="Article ID">
+                <input type="text" id="article-update-title" placeholder="New Title (optional)">
+                <textarea id="article-update-content" placeholder="New Content (optional)"></textarea>
+                <input type="text" id="article-update-image" placeholder="New Image URL (optional)">
+                <button id="article-update-btn">Execute</button>
+                <pre><code id="article-update-response"></code></pre>
+            </div>
 
-      function start() {
-        if (timer) return;
-        running = true;
-        toggleBtn.textContent = "Pause";
-        poll();
-        timer = setInterval(poll, 1000);
-      }
+            <div class="api-demo-section">
+                <h3>DELETE /api/articles/:id</h3>
+                <p>Deletes an article (requires authentication).</p>
+                <input type="text" id="article-delete-id" placeholder="Article ID">
+                <button id="article-delete-btn">Execute</button>
+                <pre><code id="article-delete-response"></code></pre>
+            </div>
 
-      function stop() {
-        running = false;
-        toggleBtn.textContent = "Resume";
-        clearInterval(timer);
-        timer = null;
-      }
+        </section>
+    </main>
 
-      toggleBtn.addEventListener("click", () => (running ? stop() : start()));
-      start();
-    </script>
-  </body>
+    <footer>
+        <p>&copy; 2025 University Project. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
 </html>

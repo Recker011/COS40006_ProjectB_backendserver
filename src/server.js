@@ -6,7 +6,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");   // request logs
-const { ping } = require("../db");
+const { ping, query } = require("../db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,7 +19,7 @@ app.use(
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        "script-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
         "style-src": ["'self'", "https:", "'unsafe-inline'"],
         "img-src": ["'self'", "data:"],
       },
@@ -29,10 +29,9 @@ app.use(
       // basic security headers
 app.use(morgan("dev"));   // concise logs
 
-// serve the dashboard at /
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "index.html"));
-});
+// Serve static files (CSS, JS)
+app.use(express.static(process.cwd()));
+
 
 // example API routing pattern (need to extend later)
 const api = express.Router();
@@ -75,6 +74,7 @@ api.use('/auth', authRoutes);
 
 // Mount article routes
 api.use('/articles', articleRoutes);
+
 
 // 404 handler for unknown routes
 app.use((req, res) => {
