@@ -45,6 +45,7 @@
 - **Method**: GET
 - **Query Params**:
   - `search`: (optional) Search term to filter articles
+  - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
 - **Response**:
 ```json
 [
@@ -54,7 +55,8 @@
     "content": "Article content...",
     "image_url": "https://example.com/image.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
-    "updated_at": "2025-08-20T12:34:56.789Z"
+    "updated_at": "2025-08-20T12:34:56.789Z",
+    "language_code": "en"
   }
 ]
 ```
@@ -62,6 +64,8 @@
 #### Get Single Article
 - **Endpoint**: `/api/articles/:id`
 - **Method**: GET
+- **Query Params**:
+  - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
 - **Response**: Same structure as list endpoint
 
 #### Create Article (Admin/Editor only)
@@ -72,16 +76,25 @@
 {
   "title": "New Article",
   "content": "Article content...",
-  "image_url": "https://example.com/image.jpg"
+  "image_url": "https://example.com/image.jpg",
+  "language_code": "en" // Optional: 'en' or 'bn'. Defaults to 'en'.
 }
 ```
-- **Response**: Created article object
+- **Response**: Created article object (includes `language_code` of the created translation)
 
 #### Update Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
 - **Method**: PUT
-- **Request Body**: Same as create
-- **Response**: Updated article object
+- **Request Body**:
+```json
+{
+  "title": "Updated Title",
+  "content": "New content...",
+  "image_url": "https://example.com/image.jpg",
+  "language_code": "en" // Optional: 'en' or 'bn'. Defaults to 'en'.
+}
+```
+- **Response**: Updated article object (includes `language_code` of the updated translation)
 
 #### Delete Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
@@ -98,7 +111,7 @@
 
 #### List Articles
 ```bash
-curl -X GET http://localhost:3000/api/articles
+curl -X GET "http://localhost:3000/api/articles?lang=en"
 ```
 
 A successful response will look like:
@@ -110,32 +123,34 @@ A successful response will look like:
     "content": "Comprehensive guide for emergency situations...",
     "image_url": "https://example.com/emergency.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
-    "updated_at": "2025-08-20T12:34:56.789Z"
+    "updated_at": "2025-08-20T12:34:56.789Z",
+    "language_code": "en"
   }
 ]
 ```
 
 #### Search Articles
 ```bash
-curl -X GET "http://localhost:3000/api/articles?search=emergency"
+curl -X GET "http://localhost:3000/api/articles?search=emergency&lang=en"
 ```
 
 Response structure matches list endpoint with filtered results.
 
 #### Get Single Article
 ```bash
-curl -X GET http://localhost:3000/api/articles/1
+curl -X GET "http://localhost:3000/api/articles/1?lang=bn"
 ```
 
 Successful response:
 ```json
 {
   "id": "1",
-  "title": "Emergency Preparedness Guide",
-  "content": "Comprehensive guide for emergency situations...",
+  "title": "জরুরী প্রস্তুতি নির্দেশিকা",
+  "content": "জরুরী পরিস্থিতির জন্য বিস্তারিত নির্দেশিকা...",
   "image_url": "https://example.com/emergency.jpg",
   "created_at": "2025-08-20T12:34:56.789Z",
-  "updated_at": "2025-08-20T12:34:56.789Z"
+  "updated_at": "2025-08-21T07:20:30.264Z",
+  "language_code": "bn"
 }
 ```
 
@@ -144,16 +159,17 @@ Successful response:
 curl -X POST http://localhost:3000/api/articles \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"New Article","content":"Article content...","image_url":"https://example.com/image.jpg"}'
+  -d '{"title":"নতুন নিবন্ধ","content":"নিবন্ধের বিষয়বস্তু...","image_url":"https://example.com/image.jpg","language_code":"bn"}'
 ```
 
 Success response (201 Created):
 ```json
 {
   "id": "2",
-  "title": "New Article",
-  "content": "Article content...",
+  "title": "নতুন নিবন্ধ",
+  "content": "নিবন্ধের বিষয়বস্তু...",
   "image_url": "https://example.com/image.jpg",
+  "language_code": "bn",
   "created_at": "2025-08-21T07:20:30.264Z",
   "updated_at": "2025-08-21T07:20:30.264Z"
 }
@@ -164,16 +180,17 @@ Success response (201 Created):
 curl -X PUT http://localhost:3000/api/articles/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"Updated Title","content":"New content..."}'
+  -d '{"title":"আপডেট করা শিরোনাম","content":"নতুন বিষয়বস্তু...","language_code":"bn"}'
 ```
 
 Success response shows updated values:
 ```json
 {
   "id": "1",
-  "title": "Updated Title",
-  "content": "New content...",
+  "title": "আপডেট করা শিরোনাম",
+  "content": "নতুন বিষয়বস্তু...",
   "image_url": "https://example.com/emergency.jpg",
+  "language_code": "bn",
   "created_at": "2025-08-20T12:34:56.789Z",
   "updated_at": "2025-08-21T07:20:30.264Z"
 }
