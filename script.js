@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const articlesSearchInput = document.getElementById('articles-search-input');
     const articlesGetLang = document.getElementById('articles-get-lang'); // New
+    const articlesGetTagInput = document.getElementById('articles-get-tag-input'); // New
     const articlesGetBtn = document.getElementById('articles-get-btn');
     const articlesGetResponse = document.getElementById('articles-get-response');
 
@@ -24,10 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleGetSingleLang = document.getElementById('article-get-single-lang'); // New
     const articleGetSingleBtn = document.getElementById('article-get-single-btn');
     const articleGetSingleResponse = document.getElementById('article-get-single-response');
+    const articleGetSingleTagsSpan = document.getElementById('article-get-single-tags'); // New
 
     const articleCreateTitle = document.getElementById('article-create-title');
     const articleCreateContent = document.getElementById('article-create-content');
     const articleCreateImage = document.getElementById('article-create-image');
+    const articleCreateTagsInput = document.getElementById('article-create-tags'); // New
     const articleCreateLang = document.getElementById('article-create-lang'); // New
     const articleCreateBtn = document.getElementById('article-create-btn');
     const articleCreateResponse = document.getElementById('article-create-response');
@@ -36,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleUpdateTitle = document.getElementById('article-update-title');
     const articleUpdateContent = document.getElementById('article-update-content');
     const articleUpdateImage = document.getElementById('article-update-image');
+    const articleUpdateTagsInput = document.getElementById('article-update-tags'); // New
     const articleUpdateLang = document.getElementById('article-update-lang'); // New
     const articleUpdateBtn = document.getElementById('article-update-btn');
     const articleUpdateResponse = document.getElementById('article-update-response');
@@ -145,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     articlesGetBtn.addEventListener('click', async () => {
         const searchTerm = articlesSearchInput.value.trim();
         const lang = articlesGetLang.value; // Get selected language
+        const tag = articlesGetTagInput.value.trim(); // Get tag for filtering
         let endpoint = '/api/articles';
         const queryParams = [];
 
@@ -153,6 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (lang) {
             queryParams.push(`lang=${lang}`);
+        }
+        if (tag) {
+            queryParams.push(`tag=${encodeURIComponent(tag)}`);
         }
 
         if (queryParams.length > 0) {
@@ -174,8 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await apiRequest(`/api/articles/${articleId}?lang=${lang}`); // Include lang in query
         if (data.error) {
             articleGetSingleResponse.textContent = `Error: ${data.error}`;
+            articleGetSingleTagsSpan.textContent = 'None';
         } else {
             displayResponse(articleGetSingleResponse, data);
+            articleGetSingleTagsSpan.textContent = data.tags_names && data.tags_names.length > 0 ? data.tags_names.join(', ') : 'None';
         }
     });
 
@@ -197,6 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const language_code = articleCreateLang.value; // Get selected language
         if (language_code) {
             body.language_code = language_code;
+        }
+        const tagsInput = articleCreateTagsInput.value.trim();
+        if (tagsInput) {
+            body.tags = tagsInput.split(',').map(tag => tag.trim());
         }
 
         const data = await apiRequest('/api/articles', 'POST', body, true);
@@ -220,6 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const language_code = articleUpdateLang.value; // Get selected language
         if (language_code) {
             body.language_code = language_code;
+        }
+        const tagsInput = articleUpdateTagsInput.value.trim();
+        if (tagsInput) {
+            body.tags = tagsInput.split(',').map(tag => tag.trim());
         }
 
         if (Object.keys(body).length === 0) {

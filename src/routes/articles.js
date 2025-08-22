@@ -63,6 +63,42 @@ async function generateUniqueSlug(connection, base, language, excludeArticleId =
   const fallbackSuffix = `-${ts}`;
   return baseTrim.slice(0, maxLen - fallbackSuffix.length) + fallbackSuffix;
 }
+
+// Utility: Find or create tags and return their IDs
+async function findOrCreateTags(connection, tagCodes, languageCode) {
+  if (!Array.isArray(tagCodes) || tagCodes.length === 0) {
+    return [];
+  }
+
+  const tagIds = [];
+  for (const code of tagCodes) {
+    const trimmedCode = code.trim().toLowerCase();
+    if (!trimmedCode) continue;
+
+    // Try to find existing tag
+    const [existingTagRows] = await connection.execute(
+      "SELECT id FROM tags WHERE code = ?",
+      [trimmedCode]
+    );
+
+    let tagId;
+    if (Array.isArray(existingTagRows) && existingTagRows.length > 0) {
+      tagId = existingTagRows[0].id;
+    } else {
+      // Create new tag if not found
+      const nameEn = trimmedCode.charAt(0).toUpperCase() + trimmedCode.slice(1);
+      const nameBn = ""; // Placeholder for Bengali name
+      const [insertTagResult] = await connection.execute(
+        "INSERT INTO tags (code, name_en, name_bn, created_at) VALUES (?, ?, ?, NOW())",
+        [trimmedCode, nameEn, nameBn]
+      );
+      tagId = insertTagResult.insertId;
+    }
+    tagIds.push(tagId);
+  }
+  return tagIds;
+}
+
 // Utility: derive a simple MIME type from a URL's extension (default to image/jpeg)
 const mimeFromUrl = (url) => {
   try {
@@ -99,10 +135,6 @@ const mimeFromUrl = (url) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const { search, lang } = req.query; // Get optional 'lang' parameter
-
-    // Determine the language code, default to 'en'
-    const languageCode = (lang === 'bn') ? 'bn' : 'en';
 
     const baseSelect = `
       SELECT
@@ -111,31 +143,41 @@ router.get("/", async (req, res) => {
         at.body AS content,
         ma.url AS image_url,
         a.created_at,
-        a.updated_at
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
       FROM articles a
       INNER JOIN article_translations at
-        ON a.id = at.article_id AND at.language_code = ? -- Use parameter for language
+        ON a.id = at.article_id AND at.language_code = ?
       LEFT JOIN media_assets ma
         ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
       WHERE a.status = 'published'
     `;
 
     let sql;
-    let params = [languageCode]; // Add languageCode to initial parameters
+    const { search, lang, tag } = req.query; // Added 'tag' query parameter
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+    let params = [languageCode];
 
+    const conditions = [];
     if (search && typeof search === "string" && search.trim().length > 0) {
       const like = `%${search.trim()}%`;
-      sql = `
-        ${baseSelect}
-          AND (at.title LIKE ? OR at.body LIKE ?)
-        ORDER BY a.created_at DESC
-      `;
-      params.push(like, like); // Add search terms to parameters
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    if (conditions.length > 0) {
+      sql = `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`;
     } else {
-      sql = `
-        ${baseSelect}
-        ORDER BY a.created_at DESC
-      `;
+      sql = `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
     }
 
     const { rows } = await query(sql, params);
@@ -147,6 +189,8 @@ router.get("/", async (req, res) => {
       image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [], // Convert comma-separated string to array
+      tags_names: article.tags_names ? article.tags_names.split(',') : [], // Convert comma-separated string to array
     }));
 
     res.json(articles);
@@ -189,16 +233,23 @@ router.get("/:id", async (req, res) => {
         at.body AS content,
         ma.url AS image_url,
         a.created_at,
-        a.updated_at
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
       FROM articles a
       INNER JOIN article_translations at
-        ON a.id = at.article_id AND at.language_code = ? -- Use parameter for language
+        ON a.id = at.article_id AND at.language_code = ?
       LEFT JOIN media_assets ma
         ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
       WHERE a.id = ? AND a.status = 'published'
+      GROUP BY a.id, at.title, at.body, ma.url, a.created_at, a.updated_at
     `;
 
-    const { rows } = await query(sql, [languageCode, id]); // Pass languageCode as a parameter
+    const { rows } = await query(sql, [languageCode, id]);
 
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Article not found in the requested language" });
@@ -212,6 +263,8 @@ router.get("/:id", async (req, res) => {
       image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
     });
   } catch (error) {
     console.error("Error fetching article:", error);
@@ -237,7 +290,7 @@ router.get("/:id", async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   // Permissions: admin/editor only
   try {
-    const { title, content, image_url, category_id, category_code, language_code } = req.body; // Added language_code
+    const { title, content, image_url, category_id, category_code, language_code, tags } = req.body; // Added language_code and tags
 
     if (!title || !content) {
       return res.status(400).json({ error: "Title and content are required" });
@@ -320,6 +373,16 @@ router.post("/", authenticate, async (req, res) => {
         [articleId, secondaryLang, secondaryTitle, secondarySlug, secondaryContent]
       );
 
+      // Handle tags
+      const tagIds = await findOrCreateTags(connection, tags, primaryLang);
+      for (const tagId of tagIds) {
+        await connection.execute(
+          "INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)",
+          [articleId, tagId]
+        );
+      }
+
+
       // Optional image: keep media_assets.id == articleId for 1:1
       if (image_url && image_url.trim().length > 0) {
         const mime = mimeFromUrl(image_url);
@@ -337,6 +400,7 @@ router.post("/", authenticate, async (req, res) => {
         content,
         image_url: image_url?.trim() || null,
         language_code: primaryLang, // Indicate the language created
+        tags: tags || [], // Include tags in the response
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -369,7 +433,7 @@ router.put("/:id", authenticate, async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    const { title, content, image_url, language_code } = req.body; // Added language_code
+    const { title, content, image_url, language_code, tags } = req.body; // Added language_code and tags
 
     if (!id || !/^\d+$/.test(id)) {
       return res.status(400).json({ error: "Invalid article ID" });
@@ -407,6 +471,16 @@ router.put("/:id", authenticate, async (req, res) => {
         [title, targetSlug, content, id, targetLang]
       );
 
+      // Handle tags: delete existing and insert new ones
+      await connection.execute("DELETE FROM article_tags WHERE article_id = ?", [id]);
+      const tagIds = await findOrCreateTags(connection, tags, targetLang);
+      for (const tagId of tagIds) {
+        await connection.execute(
+          "INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)",
+          [id, tagId]
+        );
+      }
+
       // Update / upsert image
       if (image_url && image_url.trim().length > 0) {
         const mime = mimeFromUrl(image_url);
@@ -442,6 +516,7 @@ router.put("/:id", authenticate, async (req, res) => {
         content,
         image_url: image_url?.trim() || null,
         language_code: targetLang, // Indicate the language updated
+        tags: tags || [], // Include tags in the response
         created_at: toISO(articleRows[0].created_at),
         updated_at: new Date().toISOString(),
       });

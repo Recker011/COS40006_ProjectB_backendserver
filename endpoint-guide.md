@@ -46,6 +46,7 @@
 - **Query Params**:
   - `search`: (optional) Search term to filter articles
   - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
+  - `tag`: (optional) Tag name to filter articles (e.g., `technology`, `news`).
 - **Response**:
 ```json
 [
@@ -56,7 +57,9 @@
     "image_url": "https://example.com/image.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en"
+    "language_code": "en",
+    "tags": ["tech", "news"],
+    "tags_names": ["Technology", "News"]
   }
 ]
 ```
@@ -77,10 +80,11 @@
   "title": "New Article",
   "content": "Article content...",
   "image_url": "https://example.com/image.jpg",
-  "language_code": "en" // Optional: 'en' or 'bn'. Defaults to 'en'.
+  "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
+  "tags": ["tech", "news"] // Optional: Array of tag slugs
 }
 ```
-- **Response**: Created article object (includes `language_code` of the created translation)
+- **Response**: Created article object (includes `language_code` and `tags` of the created translation)
 
 #### Update Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
@@ -91,10 +95,11 @@
   "title": "Updated Title",
   "content": "New content...",
   "image_url": "https://example.com/image.jpg",
-  "language_code": "en" // Optional: 'en' or 'bn'. Defaults to 'en'.
+  "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
+  "tags": ["tech", "news"] // Optional: Array of tag slugs
 }
 ```
-- **Response**: Updated article object (includes `language_code` of the updated translation)
+- **Response**: Updated article object (includes `language_code` and `tags` of the updated translation)
 
 #### Delete Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
@@ -111,7 +116,7 @@
 
 #### List Articles
 ```bash
-curl -X GET "http://localhost:3000/api/articles?lang=en"
+curl -X GET "http://localhost:3000/api/articles?lang=en&tag=tech"
 ```
 
 A successful response will look like:
@@ -124,17 +129,19 @@ A successful response will look like:
     "image_url": "https://example.com/emergency.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en"
+    "language_code": "en",
+    "tags": ["tech", "news"],
+    "tags_names": ["Technology", "News"]
   }
 ]
 ```
 
 #### Search Articles
 ```bash
-curl -X GET "http://localhost:3000/api/articles?search=emergency&lang=en"
+curl -X GET "http://localhost:3000/api/articles?search=emergency&lang=en&tag=tech"
 ```
 
-Response structure matches list endpoint with filtered results.
+Response structure matches list endpoint with filtered results, including `tags` and `tags_names`.
 
 #### Get Single Article
 ```bash
@@ -150,7 +157,9 @@ Successful response:
   "image_url": "https://example.com/emergency.jpg",
   "created_at": "2025-08-20T12:34:56.789Z",
   "updated_at": "2025-08-21T07:20:30.264Z",
-  "language_code": "bn"
+  "language_code": "bn",
+  "tags": ["tech", "news"],
+  "tags_names": ["Technology", "News"]
 }
 ```
 
@@ -159,7 +168,7 @@ Successful response:
 curl -X POST http://localhost:3000/api/articles \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"নতুন নিবন্ধ","content":"নিবন্ধের বিষয়বস্তু...","image_url":"https://example.com/image.jpg","language_code":"bn"}'
+  -d '{"title":"নতুন নিবন্ধ","content":"নিবন্ধের বিষয়বস্তু...","image_url":"https://example.com/image.jpg","language_code":"bn","tags":["bangla","news"]}'
 ```
 
 Success response (201 Created):
@@ -170,6 +179,7 @@ Success response (201 Created):
   "content": "নিবন্ধের বিষয়বস্তু...",
   "image_url": "https://example.com/image.jpg",
   "language_code": "bn",
+  "tags": ["bangla", "news"],
   "created_at": "2025-08-21T07:20:30.264Z",
   "updated_at": "2025-08-21T07:20:30.264Z"
 }
@@ -180,7 +190,7 @@ Success response (201 Created):
 curl -X PUT http://localhost:3000/api/articles/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"আপডেট করা শিরোনাম","content":"নতুন বিষয়বস্তু...","language_code":"bn"}'
+  -d '{"title":"আপডেট করা শিরোনাম","content":"নতুন বিষয়বস্তু...","language_code":"bn","tags":["bangla","urgent"]}'
 ```
 
 Success response shows updated values:
@@ -191,6 +201,7 @@ Success response shows updated values:
   "content": "নতুন বিষয়বস্তু...",
   "image_url": "https://example.com/emergency.jpg",
   "language_code": "bn",
+  "tags": ["bangla", "urgent"],
   "created_at": "2025-08-20T12:34:56.789Z",
   "updated_at": "2025-08-21T07:20:30.264Z"
 }
