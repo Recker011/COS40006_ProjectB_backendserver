@@ -99,35 +99,38 @@ const mimeFromUrl = (url) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, lang } = req.query; // Get optional 'lang' parameter
+
+    // Determine the language code, default to 'en'
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
 
     const baseSelect = `
       SELECT
         a.id,
-        at_en.title,
-        at_en.body AS content,
+        at.title,
+        at.body AS content,
         ma.url AS image_url,
         a.created_at,
         a.updated_at
       FROM articles a
-      INNER JOIN article_translations at_en
-        ON a.id = at_en.article_id AND at_en.language_code = 'en'
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ? -- Use parameter for language
       LEFT JOIN media_assets ma
         ON a.id = ma.id
       WHERE a.status = 'published'
     `;
 
     let sql;
-    let params = [];
+    let params = [languageCode]; // Add languageCode to initial parameters
 
     if (search && typeof search === "string" && search.trim().length > 0) {
       const like = `%${search.trim()}%`;
       sql = `
         ${baseSelect}
-          AND (at_en.title LIKE ? OR at_en.body LIKE ?)
+          AND (at.title LIKE ? OR at.body LIKE ?)
         ORDER BY a.created_at DESC
       `;
-      params = [like, like];
+      params.push(like, like); // Add search terms to parameters
     } else {
       sql = `
         ${baseSelect}
@@ -170,31 +173,35 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const { lang } = req.query; // Get the optional 'lang' query parameter
 
     if (!id || !/^\d+$/.test(id)) {
       return res.status(400).json({ error: "Invalid article ID" });
     }
 
+    // Determine the language code, default to 'en' if not specified or invalid
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
     const sql = `
       SELECT
         a.id,
-        at_en.title,
-        at_en.body AS content,
+        at.title,
+        at.body AS content,
         ma.url AS image_url,
         a.created_at,
         a.updated_at
       FROM articles a
-      INNER JOIN article_translations at_en
-        ON a.id = at_en.article_id AND at_en.language_code = 'en'
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ? -- Use parameter for language
       LEFT JOIN media_assets ma
         ON a.id = ma.id
       WHERE a.id = ? AND a.status = 'published'
     `;
 
-    const { rows } = await query(sql, [id]);
+    const { rows } = await query(sql, [languageCode, id]); // Pass languageCode as a parameter
 
     if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "Article not found" });
+      return res.status(404).json({ error: "Article not found in the requested language" });
     }
 
     const article = rows[0];
@@ -230,7 +237,7 @@ router.get("/:id", async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   // Permissions: admin/editor only
   try {
-    const { title, content, image_url, category_id, category_code } = req.body;
+    const { title, content, image_url, category_id, category_code, language_code } = req.body; // Added language_code
 
     if (!title || !content) {
       return res.status(400).json({ error: "Title and content are required" });
@@ -291,20 +298,26 @@ router.post("/", authenticate, async (req, res) => {
       );
       const articleId = articleResult.insertId;
 
-      // English translation (with unique slug)
-      const enBaseSlug = slugify(title);
-      const enSlug = await generateUniqueSlug(connection, enBaseSlug, "en");
+      // Determine the primary language for this creation
+      const primaryLang = (language_code === 'bn') ? 'bn' : 'en';
+      const secondaryLang = (primaryLang === 'en') ? 'bn' : 'en';
+
+      // Primary language translation
+      const baseSlug = slugify(title);
+      const primarySlug = await generateUniqueSlug(connection, baseSlug, primaryLang);
       await connection.execute(
         "INSERT INTO article_translations (article_id, language_code, title, slug, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
-        [articleId, "en", title, enSlug, content]
+        [articleId, primaryLang, title, primarySlug, content]
       );
 
-      // Bangla translation placeholder (unique slug)
-      const bnBaseSlug = `${enSlug}-bn`.slice(0, 255);
-      const bnSlug = await generateUniqueSlug(connection, bnBaseSlug, "bn");
+      // Secondary language placeholder (if not already created)
+      const secondaryTitle = "";
+      const secondaryContent = "";
+      const secondaryBaseSlug = `${primarySlug}-${secondaryLang}`.slice(0, 255);
+      const secondarySlug = await generateUniqueSlug(connection, secondaryBaseSlug, secondaryLang);
       await connection.execute(
         "INSERT INTO article_translations (article_id, language_code, title, slug, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
-        [articleId, "bn", "", bnSlug, ""]
+        [articleId, secondaryLang, secondaryTitle, secondarySlug, secondaryContent]
       );
 
       // Optional image: keep media_assets.id == articleId for 1:1
@@ -323,6 +336,7 @@ router.post("/", authenticate, async (req, res) => {
         title,
         content,
         image_url: image_url?.trim() || null,
+        language_code: primaryLang, // Indicate the language created
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -355,7 +369,7 @@ router.put("/:id", authenticate, async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    const { title, content, image_url } = req.body;
+    const { title, content, image_url, language_code } = req.body; // Added language_code
 
     if (!id || !/^\d+$/.test(id)) {
       return res.status(400).json({ error: "Invalid article ID" });
@@ -382,12 +396,15 @@ router.put("/:id", authenticate, async (req, res) => {
 
 
     try {
-      // Update English translation (also update slug with uniqueness)
-      const enBaseSlug = slugify(title);
-      const enSlug = await generateUniqueSlug(connection, enBaseSlug, "en", parseInt(id, 10));
+      // Determine the language code for this update
+      const targetLang = (language_code === 'bn') ? 'bn' : 'en';
+
+      // Update specific language translation (also update slug with uniqueness)
+      const baseSlug = slugify(title);
+      const targetSlug = await generateUniqueSlug(connection, baseSlug, targetLang, parseInt(id, 10));
       await connection.execute(
         "UPDATE article_translations SET title = ?, slug = ?, body = ?, updated_at = NOW() WHERE article_id = ? AND language_code = ?",
-        [title, enSlug, content, id, "en"]
+        [title, targetSlug, content, id, targetLang]
       );
 
       // Update / upsert image
@@ -424,6 +441,7 @@ router.put("/:id", authenticate, async (req, res) => {
         title,
         content,
         image_url: image_url?.trim() || null,
+        language_code: targetLang, // Indicate the language updated
         created_at: toISO(articleRows[0].created_at),
         updated_at: new Date().toISOString(),
       });

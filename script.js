@@ -16,16 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentTokenSpan = document.getElementById('current-token');
 
     const articlesSearchInput = document.getElementById('articles-search-input');
+    const articlesGetLang = document.getElementById('articles-get-lang'); // New
     const articlesGetBtn = document.getElementById('articles-get-btn');
     const articlesGetResponse = document.getElementById('articles-get-response');
 
     const articleIdInput = document.getElementById('article-id-input');
+    const articleGetSingleLang = document.getElementById('article-get-single-lang'); // New
     const articleGetSingleBtn = document.getElementById('article-get-single-btn');
     const articleGetSingleResponse = document.getElementById('article-get-single-response');
 
     const articleCreateTitle = document.getElementById('article-create-title');
     const articleCreateContent = document.getElementById('article-create-content');
     const articleCreateImage = document.getElementById('article-create-image');
+    const articleCreateLang = document.getElementById('article-create-lang'); // New
     const articleCreateBtn = document.getElementById('article-create-btn');
     const articleCreateResponse = document.getElementById('article-create-response');
 
@@ -33,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleUpdateTitle = document.getElementById('article-update-title');
     const articleUpdateContent = document.getElementById('article-update-content');
     const articleUpdateImage = document.getElementById('article-update-image');
+    const articleUpdateLang = document.getElementById('article-update-lang'); // New
     const articleUpdateBtn = document.getElementById('article-update-btn');
     const articleUpdateResponse = document.getElementById('article-update-response');
 
@@ -140,7 +144,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // GET /api/articles
     articlesGetBtn.addEventListener('click', async () => {
         const searchTerm = articlesSearchInput.value.trim();
-        const endpoint = searchTerm ? `/api/articles?search=${encodeURIComponent(searchTerm)}` : '/api/articles';
+        const lang = articlesGetLang.value; // Get selected language
+        let endpoint = '/api/articles';
+        const queryParams = [];
+
+        if (searchTerm) {
+            queryParams.push(`search=${encodeURIComponent(searchTerm)}`);
+        }
+        if (lang) {
+            queryParams.push(`lang=${lang}`);
+        }
+
+        if (queryParams.length > 0) {
+            endpoint += `?${queryParams.join('&')}`;
+        }
+
         const data = await apiRequest(endpoint);
         displayResponse(articlesGetResponse, data);
     });
@@ -152,7 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
             displayResponse(articleGetSingleResponse, { error: 'Please enter an Article ID.' });
             return;
         }
-        const data = await apiRequest(`/api/articles/${articleId}`);
+        const lang = articleGetSingleLang.value; // Get selected language
+        const data = await apiRequest(`/api/articles/${articleId}?lang=${lang}`); // Include lang in query
         if (data.error) {
             articleGetSingleResponse.textContent = `Error: ${data.error}`;
         } else {
@@ -175,6 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (image_url) {
             body.image_url = image_url;
         }
+        const language_code = articleCreateLang.value; // Get selected language
+        if (language_code) {
+            body.language_code = language_code;
+        }
 
         const data = await apiRequest('/api/articles', 'POST', body, true);
         displayResponse(articleCreateResponse, data);
@@ -194,6 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const body = { title, content }; // Always send title and content
         if (image_url) body.image_url = image_url;
+        const language_code = articleUpdateLang.value; // Get selected language
+        if (language_code) {
+            body.language_code = language_code;
+        }
 
         if (Object.keys(body).length === 0) {
             displayResponse(articleUpdateResponse, { error: 'Please provide at least one field to update (Title, Content, or Image URL).' });

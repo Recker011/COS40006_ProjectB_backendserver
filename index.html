@@ -67,6 +67,10 @@
                 <h3>GET /api/articles</h3>
                 <p>Lists all articles or searches by keyword.</p>
                 <input type="text" id="articles-search-input" placeholder="Search keyword (optional)">
+                <select id="articles-get-lang">
+                    <option value="en">English</option>
+                    <option value="bn">Bengali</option>
+                </select>
                 <button id="articles-get-btn">Execute</button>
                 <pre><code id="articles-get-response"></code></pre>
             </div>
@@ -75,6 +79,10 @@
                 <h3>GET /api/articles/:id</h3>
                 <p>Retrieves a single article by ID.</p>
                 <input type="text" id="article-id-input" placeholder="Article ID">
+                <select id="article-get-single-lang">
+                    <option value="en">English</option>
+                    <option value="bn">Bengali</option>
+                </select>
                 <button id="article-get-single-btn">Execute</button>
                 <pre><code id="article-get-single-response"></code></pre>
             </div>
@@ -85,6 +93,10 @@
                 <input type="text" id="article-create-title" placeholder="Title">
                 <textarea id="article-create-content" placeholder="Content"></textarea>
                 <input type="text" id="article-create-image" placeholder="Image URL (optional)">
+                <select id="article-create-lang">
+                    <option value="en">English</option>
+                    <option value="bn">Bengali</option>
+                </select>
                 <button id="article-create-btn">Execute</button>
                 <pre><code id="article-create-response"></code></pre>
             </div>
@@ -96,6 +108,10 @@
                 <input type="text" id="article-update-title" placeholder="New Title (optional)">
                 <textarea id="article-update-content" placeholder="New Content (optional)"></textarea>
                 <input type="text" id="article-update-image" placeholder="New Image URL (optional)">
+                <select id="article-update-lang">
+                    <option value="en">English</option>
+                    <option value="bn">Bengali</option>
+                </select>
                 <button id="article-update-btn">Execute</button>
                 <pre><code id="article-update-response"></code></pre>
             </div>
