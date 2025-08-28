@@ -5,9 +5,9 @@
 **Currently available:**
 - `POST /api/auth/login` ✅
 
-**Suggested additions:**
+**Additions:**
 - `POST /api/auth/register` - User registration with email/password✅
-- `POST /api/auth/logout` - Logout (blacklist token or clear session)
+- `POST /api/auth/logout` - Logout (blacklist token or clear session)✅(Goofy asf because client side token validation, but its fine because this endpoint is needed for the sake of completeness)
 - `GET /api/auth/profile` - Get current user profile
 - `PUT /api/auth/profile` - Update user profile (display_name)
 - `PUT /api/auth/password` - Change password
@@ -28,7 +28,7 @@
 - `PUT /api/articles/:id` ✅
 - `DELETE /api/articles/:id` ✅
 
-**Suggested additions:**
+**Additions:**
 - `GET /api/articles/drafts` - List draft articles (author/admin/editor)
 - `GET /api/articles/hidden` - List hidden articles (admin/editor)
 - `PUT /api/articles/:id/status` - Change article status (draft/published/hidden)
@@ -44,7 +44,7 @@
 
 ### **3. Category Management**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/categories` - List all categories
 - `GET /api/categories/:id` - Get specific category
 - `POST /api/categories` - Create new category (admin/editor)
@@ -55,7 +55,7 @@
 
 ### **4. Tag Management**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/tags` - List all tags✅
 - `GET /api/tags/:id` - Get specific tag✅
 - `POST /api/tags` - Create new tag (admin/editor)✅
@@ -68,7 +68,7 @@
 
 ### **5. Media Asset Management**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/media` - List all media assets
 - `GET /api/media/:id` - Get specific media asset
 - `POST /api/media` - Upload/create media asset
@@ -80,7 +80,7 @@
 
 ### **6. Search & Analytics**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/search` - Global search across articles, categories, tags
 - `GET /api/search/suggestions` - Search suggestions/autocomplete
 - `POST /api/analytics/view` - Track article views
@@ -90,7 +90,7 @@
 
 ### **7. System Administration**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/admin/stats` - System statistics
 - `GET /api/admin/users/inactive` - Inactive users
 - `GET /api/admin/content/orphaned` - Orphaned content
@@ -101,7 +101,7 @@
 
 ### **8. Content Organization**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/content/featured` - Featured content
 - `GET /api/content/trending` - Trending content
 - `GET /api/content/related/:id` - Related articles
@@ -111,11 +111,10 @@
 
 ### **9. Multilingual Support**
 
-**Suggested endpoints:**
+**Additions:**
 - `GET /api/languages` - Available languages
 - `GET /api/translations/missing` - Articles missing translations
 - `GET /api/translations/status` - Translation completion status
-- `POST /api/translations/auto` - Auto-translate content (if integrated with translation service)
 
 ### **10. Utility & Maintenance**
 
@@ -124,7 +123,7 @@
 - `DELETE /api/articles` ✅
 - `POST /api/articles/clear` ✅
 
-**Suggested additions:**
+**Additions:**
 - `GET /api/status` - Detailed system status
 - `POST /api/cache/clear` - Clear application cache
 - `GET /api/version` - API version information
