@@ -3,4 +3,3 @@ certs/*.pem
 certs/*.js
 .env
 .kilocode/
-Suggestions.md
