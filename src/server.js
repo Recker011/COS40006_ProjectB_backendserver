@@ -7,6 +7,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");   // request logs
 const { ping, query } = require("../db");
+const { exec } = require('child_process'); // Import child_process
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,6 +75,21 @@ api.use('/auth', authRoutes);
 
 // Mount article routes
 api.use('/articles', articleRoutes);
+
+// Endpoint to run PowerShell tests
+api.post('/run-tests', (req, res) => {
+  exec('powershell.exe -File run-tests.ps1', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      return res.status(500).json({ ok: false, error: stderr || error.message });
+    }
+    if (stderr) {
+      console.error(`stderr: ${stderr}`);
+      return res.status(500).json({ ok: false, error: stderr });
+    }
+    res.json({ ok: true, output: stdout });
+  });
+});
 
 
 // 404 handler for unknown routes

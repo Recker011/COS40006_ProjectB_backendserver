@@ -187,4 +187,38 @@ router.post('/register', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/logout
+ * Logout (client-side token invalidation)
+ *
+ * This endpoint simply acknowledges the logout request.
+ * The client is responsible for clearing its stored JWT token.
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Response (success):
+ * {
+ *   "ok": true,
+ *   "message": "Logged out successfully. Please clear your token on the client side."
+ * }
+ */
+router.post('/logout', async (req, res) => {
+  try {
+    // In a JWT-based system without server-side session or token blacklisting,
+    // logout is primarily a client-side action (clearing the token).
+    // This endpoint serves as an acknowledgment and a place for potential future server-side invalidation.
+    res.json({
+      ok: true,
+      message: 'Logged out successfully. Please clear your token on the client side.'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Logout failed'
+    });
+  }
+});
+
 module.exports = router;

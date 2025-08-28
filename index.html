@@ -74,6 +74,13 @@
             </div>
 
             <div class="api-demo-section">
+                <h3>POST /api/auth/logout</h3>
+                <p>Logs out the current user by clearing the JWT token from client-side storage.</p>
+                <button id="logout-btn">Execute Logout</button>
+                <pre><code id="logout-response"></code></pre>
+            </div>
+
+            <div class="api-demo-section">
                 <h3>GET /api/articles</h3>
                 <p>Lists all articles or searches by keyword.</p>
                 <input type="text" id="articles-search-input" placeholder="Search keyword (optional)">
@@ -138,6 +145,16 @@
                 <pre><code id="article-delete-response"></code></pre>
             </div>
 
+        </section>
+
+        <section id="unit-tests" class="dashboard-section">
+            <h2>Unit Tests</h2>
+            <div class="api-demo-section">
+                <h3>Run All API Tests</h3>
+                <p>Executes PowerShell scripts to test authentication and article endpoints.</p>
+                <button id="run-all-tests-btn">Run Tests</button>
+                <pre><code id="all-tests-response"></code></pre>
+            </div>
         </section>
     </main>
 

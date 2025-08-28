@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerBtn = document.getElementById('register-btn');
     const registerResponse = document.getElementById('register-response');
 
+    const logoutBtn = document.getElementById('logout-btn');
+    const logoutResponse = document.getElementById('logout-response');
+
     const articlesSearchInput = document.getElementById('articles-search-input');
     const articlesGetLang = document.getElementById('articles-get-lang'); // New
     const articlesGetTagInput = document.getElementById('articles-get-tag-input'); // New
@@ -53,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleDeleteId = document.getElementById('article-delete-id');
     const articleDeleteBtn = document.getElementById('article-delete-btn');
     const articleDeleteResponse = document.getElementById('article-delete-response');
+
+    // Unit Test Elements
+    const runAllTestsBtn = document.getElementById('run-all-tests-btn');
+    const allTestsResponse = document.getElementById('all-tests-response');
 
     let authToken = sessionStorage.getItem('authToken') || null;
     if (authToken) {
@@ -171,6 +178,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // POST /api/auth/logout
+    logoutBtn.addEventListener('click', async () => {
+        const data = await apiRequest('/api/auth/logout', 'POST', null, true);
+        displayResponse(logoutResponse, data);
+        if (data.ok) {
+            authToken = null;
+            sessionStorage.removeItem('authToken');
+            currentTokenSpan.textContent = 'None';
+            addLogEntry(`[${new Date().toLocaleString()}] Logout successful. Token cleared.`);
+        } else {
+            addLogEntry(`[${new Date().toLocaleString()}] Logout failed.`);
+        }
+    });
+
     // GET /api/articles
     articlesGetBtn.addEventListener('click', async () => {
         const searchTerm = articlesSearchInput.value.trim();
@@ -284,6 +305,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const data = await apiRequest(`/api/articles/${articleId}`, 'DELETE', null, true);
         displayResponse(articleDeleteResponse, data);
+    });
+
+    // Unit Tests
+    runAllTestsBtn.addEventListener('click', async () => {
+        allTestsResponse.textContent = 'Running tests... This may take a moment.';
+        const data = await apiRequest('/api/run-tests', 'POST');
+        if (data.ok) {
+            allTestsResponse.textContent = data.output;
+            addLogEntry(`[${new Date().toLocaleString()}] API tests completed successfully.`);
+        } else {
+            allTestsResponse.textContent = `Error running tests: ${data.error}`;
+            addLogEntry(`[${new Date().toLocaleString()}] API tests failed.`);
+        }
     });
 
 });

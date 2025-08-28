@@ -68,6 +68,24 @@
   - `409 Conflict`: Email already registered
   - `500 Internal Server Error`: Server processing error
 
+#### Logout
+- **Endpoint**: `/api/auth/logout`
+- **Method**: POST
+- **Description**: Logs out the current user by instructing the client to clear its JWT token. This is a client-side token invalidation.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "Logged out successfully. Please clear your token on the client side."
+}
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error
+
 ### Article Management
 
 #### List/Search Articles
