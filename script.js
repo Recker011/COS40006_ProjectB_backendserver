@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginResponse = document.getElementById('login-response');
     const currentTokenSpan = document.getElementById('current-token');
 
+    const registerEmail = document.getElementById('register-email');
+    const registerPassword = document.getElementById('register-password');
+    const registerDisplayName = document.getElementById('register-display-name');
+    const registerBtn = document.getElementById('register-btn');
+    const registerResponse = document.getElementById('register-response');
+
     const articlesSearchInput = document.getElementById('articles-search-input');
     const articlesGetLang = document.getElementById('articles-get-lang'); // New
     const articlesGetTagInput = document.getElementById('articles-get-tag-input'); // New
@@ -142,6 +148,26 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('authToken');
             currentTokenSpan.textContent = 'None';
             addLogEntry(`[${new Date().toLocaleString()}] Login failed.`);
+        }
+    });
+
+    // POST /api/auth/register
+    registerBtn.addEventListener('click', async () => {
+        const email = registerEmail.value;
+        const password = registerPassword.value;
+        const displayName = registerDisplayName.value;
+        const data = await apiRequest('/api/auth/register', 'POST', { email, password, displayName });
+        displayResponse(registerResponse, data);
+        if (data.ok && data.token) {
+            authToken = data.token;
+            sessionStorage.setItem('authToken', authToken);
+            currentTokenSpan.textContent = authToken.substring(0, 30) + '...';
+            addLogEntry(`[${new Date().toLocaleString()}] Registration successful. Token stored.`);
+        } else {
+            authToken = null;
+            sessionStorage.removeItem('authToken');
+            currentTokenSpan.textContent = 'None';
+            addLogEntry(`[${new Date().toLocaleString()}] Registration failed.`);
         }
     });
 

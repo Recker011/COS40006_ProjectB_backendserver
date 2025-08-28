@@ -64,6 +64,16 @@
             </div>
 
             <div class="api-demo-section">
+                <h3>POST /api/auth/register</h3>
+                <p>Registers a new user and returns a JWT token.</p>
+                <input type="email" id="register-email" placeholder="Email">
+                <input type="password" id="register-password" placeholder="Password">
+                <input type="text" id="register-display-name" placeholder="Display Name">
+                <button id="register-btn">Execute</button>
+                <pre><code id="register-response"></code></pre>
+            </div>
+
+            <div class="api-demo-section">
                 <h3>GET /api/articles</h3>
                 <p>Lists all articles or searches by keyword.</p>
                 <input type="text" id="articles-search-input" placeholder="Search keyword (optional)">

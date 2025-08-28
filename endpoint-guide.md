@@ -37,6 +37,36 @@
   - `401 Unauthorized`: Invalid credentials
   - `500 Internal Server Error`: Server processing error
 
+#### Register
+- **Endpoint**: `/api/auth/register`
+- **Method**: POST
+- **Description**: Register a new user with email, password, and display name
+- **Request Body**:
+```json
+{
+  "email": "newuser@example.com",
+  "password": "new_user_password",
+  "displayName": "New User"
+}
+```
+- **Success Response (201 Created)**:
+```json
+{
+  "ok": true,
+  "user": {
+    "id": 2,
+    "email": "newuser@example.com",
+    "displayName": "New User",
+    "role": "reader"
+  },
+  "token": "jwt_token_string",
+  "expiresIn": 86400
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Missing email, password, or displayName
+  - `409 Conflict`: Email already registered
+  - `500 Internal Server Error`: Server processing error
 
 ### Article Management
 
