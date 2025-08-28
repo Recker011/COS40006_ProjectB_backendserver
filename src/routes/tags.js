@@ -32,7 +32,7 @@ router.get('/', async (req, res) => { //Returns what code the tag is along with 
         name_en,
         name_bn
       FROM tags
-      ORDER BY name_en
+      ORDER BY ${languageField}
     `;
     
     const { rows } = await query(sql);
@@ -98,7 +98,80 @@ router.get('/:code', async (req, res) => { //Retrieve a specific tag by code
  * 
  * Response: Created tag object
  */
-
+/**
+ * POST /api/tags
+ * Create a new tag with multilingual names
+ * 
+ * Request Body:
+ * {
+ *   "code": "string (required, lowercase, no spaces)",
+ *   "name_en": "string (required)",
+ *   "name_bn": "string (optional)"
+ * }
+ * 
+ * Response: Created tag object
+ */
+router.post('/', authenticate, async (req, res) => {
+  try {
+    const { code, name_en, name_bn } = req.body;
+    
+    // Validate required fields
+    if (!code || typeof code !== 'string' || code.trim().length === 0) {
+      return res.status(400).json({ error: 'Tag code is required' });
+    }
+    if (!name_en || typeof name_en !== 'string' || name_en.trim().length === 0) {
+      return res.status(400).json({ error: 'English name is required' });
+    }
+    
+    // Check user role
+    if (req.user.role !== 'admin' && req.user.role !== 'editor') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // Check if tag already exists
+      const [existingRows] = await connection.execute(
+        'SELECT code FROM tags WHERE code = ?',
+        [code.trim().toLowerCase()]
+      );
+      
+      if (Array.isArray(existingRows) && existingRows.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({ error: 'Tag with this code already exists' });
+      }
+      
+      // Insert new tag
+      const [result] = await connection.execute(
+        'INSERT INTO tags (code, name_en, name_bn, created_at) VALUES (?, ?, ?, NOW())',
+        [
+          code.trim().toLowerCase(),
+          name_en.trim(),
+          name_bn ? name_bn.trim() : ''
+        ]
+      );
+      
+      await connection.commit();
+      
+      // Return the created tag
+      res.status(201).json({
+        code: code.trim().toLowerCase(),
+        name_en: name_en.trim(),
+        name_bn: name_bn ? name_bn.trim() : ''
+      });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error creating tag:', error);
+    res.status(500).json({ error: 'Failed to create tag' });
+  }
+});
 
 
 module.exports = router;
