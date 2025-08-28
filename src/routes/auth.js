@@ -97,4 +97,94 @@ router.post('/login', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/register
+ * User registration with email, password, and display name
+ *
+ * Request body:
+ * {
+ *   "email": "newuser@example.com",
+ *   "password": "new_user_password",
+ *   "displayName": "New User"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "ok": true,
+ *   "user": {
+ *     "id": 2,
+ *     "email": "newuser@example.com",
+ *     "displayName": "New User",
+ *     "role": "reader"
+ *   },
+ *   "token": "jwt_token_string",
+ *   "expiresIn": 86400
+ * }
+ */
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, displayName } = req.body;
+
+    // Validate input
+    if (!email || !password || !displayName) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Email, password, and display name are required'
+      });
+    }
+
+    // Check if user already exists
+    const { rows: existingUsers } = await query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existingUsers.length > 0) {
+      return res.status(409).json({
+        ok: false,
+        error: 'Email already registered'
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Insert new user into database
+    const { rows: result } = await query(
+      'INSERT INTO users (email, password_hash, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 1, NOW(), NOW())',
+      [email, passwordHash, displayName, 'reader'] // Default role 'reader', is_active = 1
+    );
+
+    const newUserId = result.insertId;
+
+    // Fetch the newly created user to return
+    const { rows: newUserRows } = await query('SELECT id, email, display_name, role FROM users WHERE id = ?', [newUserId]);
+    const newUser = newUserRows[0];
+
+    // Create JWT token for the new user
+    const token = jwt.sign(
+      { userId: newUser.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Return success response
+    res.status(201).json({
+      ok: true,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        displayName: newUser.display_name,
+        role: newUser.role
+      },
+      token,
+      expiresIn: 86400 // 24 hours in seconds
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Registration failed'
+    });
+  }
+});
+
 module.exports = router;
