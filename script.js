@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const logoutResponse = document.getElementById('logout-response');
 
+    const profileGetBtn = document.getElementById('profile-get-btn');
+    const profileGetResponse = document.getElementById('profile-get-response');
+
     const articlesSearchInput = document.getElementById('articles-search-input');
     const articlesGetLang = document.getElementById('articles-get-lang'); // New
     const articlesGetTagInput = document.getElementById('articles-get-tag-input'); // New
@@ -189,6 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
             addLogEntry(`[${new Date().toLocaleString()}] Logout successful. Token cleared.`);
         } else {
             addLogEntry(`[${new Date().toLocaleString()}] Logout failed.`);
+        }
+    });
+
+    // GET /api/auth/profile
+    profileGetBtn.addEventListener('click', async () => {
+        const data = await apiRequest('/api/auth/profile', 'GET', null, true);
+        displayResponse(profileGetResponse, data);
+        if (data.ok) {
+            addLogEntry(`[${new Date().toLocaleString()}] Profile retrieved successfully.`);
+        } else {
+            addLogEntry(`[${new Date().toLocaleString()}] Failed to retrieve profile.`);
         }
     });
 

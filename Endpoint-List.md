@@ -8,7 +8,7 @@
 **Additions:**
 - `POST /api/auth/register` - User registration with email/password✅
 - `POST /api/auth/logout` - Logout (blacklist token or clear session)✅(Goofy asf because client side token validation, but its fine because this endpoint is needed for the sake of completeness)
-- `GET /api/auth/profile` - Get current user profile
+- `GET /api/auth/profile` - Get current user profile ✅
 - `PUT /api/auth/profile` - Update user profile (display_name)
 - `PUT /api/auth/password` - Change password
 - `POST /api/auth/refresh` - Refresh JWT token

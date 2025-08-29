@@ -86,6 +86,31 @@ Authorization: Bearer <jwt_token>
 - **Error Responses**:
   - `500 Internal Server Error`: Server processing error
 
+#### Get User Profile
+- **Endpoint**: `/api/auth/profile`
+- **Method**: GET
+- **Description**: Retrieves the profile information of the currently authenticated user.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "John Doe",
+    "role": "reader"
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `500 Internal Server Error`: Server processing error
+
 ### Article Management
 
 #### List/Search Articles

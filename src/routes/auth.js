@@ -5,8 +5,49 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../../db');
+const { authenticate } = require('../middleware/auth'); // Import authenticate middleware
 
 const router = express.Router();
+
+/**
+ * GET /api/auth/profile
+ * Get current user profile
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Response (success):
+ * {
+ *   "ok": true,
+ *   "user": {
+ *     "id": 1,
+ *     "email": "user@example.com",
+ *     "displayName": "John Doe",
+ *     "role": "reader"
+ *   }
+ * }
+ */
+router.get('/profile', authenticate, (req, res) => {
+  try {
+    // User information is available in req.user from the authenticate middleware
+    const { id, email, display_name, role } = req.user;
+    res.json({
+      ok: true,
+      user: {
+        id,
+        email,
+        displayName: display_name,
+        role,
+      },
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Failed to retrieve user profile',
+    });
+  }
+});
 
 /**
  * POST /api/auth/login
