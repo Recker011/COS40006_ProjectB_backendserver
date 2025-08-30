@@ -69,7 +69,20 @@
 - **Method**: GET
 - **Query Params**:
   - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
-- **Response**: Same structure as list endpoint
+- **Response**:
+```json
+{
+  "id": "string",
+  "title": "string",
+  "content": "string",
+  "image_url": "string|null",
+  "created_at": "ISO string",
+  "updated_at": "ISO string",
+  "language_code": "string",
+  "tags": ["string"],
+  "tags_names": ["string"]
+}
+```
 
 #### Create Article (Admin/Editor only)
 - **Endpoint**: `/api/articles`
@@ -168,6 +181,47 @@
   - `401 Unauthorized`: Missing or invalid JWT token.
   - `403 Forbidden`: Insufficient permissions (user role is not 'admin' or 'editor').
   - `409 Conflict`: Tag with this code already exists.
+  - `500 Internal Server Error`: Server processing error.
+
+#### Update Tag (Admin/Editor only)
+- **Endpoint**: `/api/tags/:code`
+- **Method**: PUT
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'` or `role: 'editor'`
+- **Request Body**:
+```json
+{
+  "name_en": "string (required)",
+  "name_bn": "string (optional)"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "code": "string",
+  "name_en": "string",
+  "name_bn": "string"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid or missing `name_en`.
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions.
+  - `404 Not Found`: Tag with the specified code does not exist.
+  - `500 Internal Server Error`: Server processing error.
+
+#### Delete Tag (Admin/Editor only)
+- **Endpoint**: `/api/tags/:code`
+- **Method**: DELETE
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'` or `role: 'editor'`
+- **Response**:
+  - `204 No Content`: Tag successfully deleted.
+- **Error Responses**:
+  - `400 Bad Request`: Invalid tag code.
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions.
+  - `404 Not Found`: Tag with the specified code does not exist.
   - `500 Internal Server Error`: Server processing error.
 
 ### Testing Tag Endpoints
