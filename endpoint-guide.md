@@ -37,6 +37,36 @@
   - `401 Unauthorized`: Invalid credentials
   - `500 Internal Server Error`: Server processing error
 
+#### Change Password
+- **Endpoint**: `/api/auth/password`
+- **Method**: PUT
+- **Description**: Allows an authenticated user to change their password.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Request Body**:
+```json
+{
+  "oldPassword": "current_password",
+  "newPassword": "new_secure_password",
+  "confirmNewPassword": "new_secure_password"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "Password updated successfully."
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: All password fields are required, New passwords do not match, New password must be at least 8 characters long, New password cannot be the same as the old password.
+  - `401 Unauthorized`: Access token required, Invalid token, Token expired, Invalid old password.
+  - `404 Not Found`: User not found (unlikely if authenticated).
+  - `500 Internal Server Error`: Server processing error.
+
 #### Register
 - **Endpoint**: `/api/auth/register`
 - **Method**: POST

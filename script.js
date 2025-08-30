@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleDeleteBtn = document.getElementById('article-delete-btn');
     const articleDeleteResponse = document.getElementById('article-delete-response');
 
+
     // Unit Test Elements
     const runAllTestsBtn = document.getElementById('run-all-tests-btn');
     const allTestsResponse = document.getElementById('all-tests-response');
@@ -353,5 +354,6 @@ document.addEventListener('DOMContentLoaded', () => {
             addLogEntry(`[${new Date().toLocaleString()}] API tests failed.`);
         }
     });
+
 
 });

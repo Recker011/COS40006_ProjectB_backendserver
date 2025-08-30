@@ -337,4 +337,104 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/password
+ * Change user password
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Request body:
+ * {
+ *   "oldPassword": "current_password",
+ *   "newPassword": "new_secure_password",
+ *   "confirmNewPassword": "new_secure_password"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "ok": true,
+ *   "message": "Password updated successfully."
+ * }
+ */
+router.put('/password', authenticate, async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmNewPassword } = req.body;
+    const userId = req.user.id; // User ID from authenticated token
+
+    // 1. Input Validation
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({
+        ok: false,
+        error: 'All password fields are required.'
+      });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({
+        ok: false,
+        error: 'New passwords do not match.'
+      });
+    }
+
+    // Basic password strength check (e.g., minimum length)
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        ok: false,
+        error: 'New password must be at least 8 characters long.'
+      });
+    }
+
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        ok: false,
+        error: 'New password cannot be the same as the old password.'
+      });
+    }
+
+    // Fetch user's current password hash from the database
+    const { rows } = await query('SELECT password_hash FROM users WHERE id = ?', [userId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: 'User not found.'
+      });
+    }
+
+    const user = rows[0];
+    const currentPasswordHash = user.password_hash;
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, currentPasswordHash);
+
+    if (!isOldPasswordValid) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid old password.'
+      });
+    }
+
+    // Hash the new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 10); // 10 is the salt rounds
+
+    // Update the user's password hash in the database
+    await query('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [newPasswordHash, userId]);
+
+    console.log(`Password changed for user ID: ${userId}`);
+
+    res.json({
+      ok: true,
+      message: 'Password updated successfully.'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Failed to change password.'
+    });
+  }
+});
+
 module.exports = router;

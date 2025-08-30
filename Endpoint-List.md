@@ -10,7 +10,7 @@
 - `POST /api/auth/logout` - Logout (blacklist token or clear session)✅(Goofy asf because client side token validation, but its fine because this endpoint is needed for the sake of completeness)
 - `GET /api/auth/profile` - Get current user profile ✅
 - `PUT /api/auth/profile` - Update user profile (display_name)✅
-- `PUT /api/auth/password` - Change password
+- `PUT /api/auth/password` - Change password ✅
 - `POST /api/auth/refresh` - Refresh JWT token
 - `GET /api/users` - List all users (admin only)
 - `GET /api/users/:id` - Get specific user details (admin/editor)
