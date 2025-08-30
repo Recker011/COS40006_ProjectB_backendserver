@@ -42,6 +42,9 @@ const authRoutes = require('./routes/auth');
 
 // Import article routes
 const articleRoutes = require('./routes/articles');
+
+// Import tag routes
+const tagRoutes = require('./routes/tags');
 const userRoutes = require('./routes/users');
 
 // health endpoint: returns server uptime + DB status
@@ -76,6 +79,9 @@ api.use('/auth', authRoutes);
 
 // Mount article routes
 api.use('/articles', articleRoutes);
+
+// Mount tag routes
+api.use('/tags', tagRoutes);
 
 // Mount user routes
 api.use('/users', userRoutes);
