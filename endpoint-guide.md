@@ -174,6 +174,45 @@ Authorization: Bearer <jwt_token>
   - `401 Unauthorized`: Access token required, Invalid token, or Token expired
   - `500 Internal Server Error`: Server processing error
 
+### User Management
+#### List All Users
+- **Endpoint**: `/api/users`
+- **Method**: GET
+- **Description**: Retrieves a list of all active users. This endpoint is restricted to admin users only.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@example.com",
+      "displayName": "Admin User",
+      "role": "admin",
+      "createdAt": "2023-01-01T10:00:00Z",
+      "updatedAt": "2023-01-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "email": "user@example.com",
+      "displayName": "Regular User",
+      "role": "reader",
+      "createdAt": "2023-01-02T11:00:00Z",
+      "updatedAt": "2023-01-02T11:00:00Z"
+    }
+  ]
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin)
+  - `500 Internal Server Error`: Server processing error
+
 ### Article Management
 
 #### List/Search Articles
