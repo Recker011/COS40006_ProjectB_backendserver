@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 // middleware
 app.use(express.json());
-app.use(cors());          // allow cross-origin (React / RN dev servers)
+app.use(cors());          // allow cross-origin (React / flutter dev servers)
 app.use(
   helmet({
     contentSecurityPolicy: {
