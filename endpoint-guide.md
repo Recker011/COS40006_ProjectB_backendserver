@@ -213,6 +213,154 @@ Authorization: Bearer <jwt_token>
   - `403 Forbidden`: Insufficient permissions (user is not an admin)
   - `500 Internal Server Error`: Server processing error
 
+#### Get Specific User Details
+- **Endpoint**: `/api/users/:id`
+- **Method**: GET
+- **Description**: Retrieves details for a specific user by their ID. Accessible by 'admin' and 'editor' roles.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' or 'editor' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Path Parameters**:
+  - `id`: The ID of the user to retrieve.
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "email": "admin@example.com",
+    "displayName": "Admin User",
+    "role": "admin",
+    "createdAt": "2023-01-01T10:00:00Z",
+    "updatedAt": "2023-01-01T10:00:00Z"
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin or editor)
+  - `404 Not Found`: User not found or inactive
+  - `500 Internal Server Error`: Server processing error
+
+#### Update User
+- **Endpoint**: `/api/users/:id`
+- **Method**: PUT
+- **Description**: Updates the details of a specific user by their ID. Only accessible by 'admin' role.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Path Parameters**:
+  - `id`: The ID of the user to update.
+- **Request Body**:
+```json
+{
+  "displayName": "Updated Admin Name",
+  "email": "updated_admin@example.com",
+  "role": "editor"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "User updated successfully"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid input (e.g., missing fields, invalid role)
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin)
+  - `404 Not Found`: User not found or inactive
+  - `500 Internal Server Error`: Server processing error
+
+#### Activate/Deactivate User
+- **Endpoint**: `/api/users/:id/activate`
+- **Method**: PUT
+- **Description**: Activates or deactivates a user by their ID. Only accessible by 'admin' role.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Path Parameters**:
+  - `id`: The ID of the user to activate/deactivate.
+- **Request Body**:
+```json
+{
+  "isActive": true
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "User activated successfully"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid input (e.g., `isActive` is not a boolean)
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin)
+  - `404 Not Found`: User not found
+  - `500 Internal Server Error`: Server processing error
+
+#### Soft Delete User
+- **Endpoint**: `/api/users/:id`
+- **Method**: DELETE
+- **Description**: Soft deletes a user by setting their `is_active` status to `0`. Only accessible by 'admin' role.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Path Parameters**:
+  - `id`: The ID of the user to soft delete.
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "User soft-deleted successfully"
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin)
+  - `404 Not Found`: User not found or already deleted
+  - `500 Internal Server Error`: Server processing error
+
+#### Get User Statistics
+- **Endpoint**: `/api/users/stats`
+- **Method**: GET
+- **Description**: Retrieves various statistics about users, including total users, active users, and users by role. Only accessible by 'admin' role.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header. User must have 'admin' role.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "stats": {
+    "totalUsers": 5,
+    "activeUsers": 3,
+    "usersByRole": [
+      { "role": "admin", "count": 1 },
+      { "role": "editor", "count": 1 },
+      { "role": "reader", "count": 3 }
+    ]
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `403 Forbidden`: Insufficient permissions (user is not an admin)
+  - `500 Internal Server Error`: Server processing error
+
 ### Article Management
 
 #### List/Search Articles

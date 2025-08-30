@@ -12,11 +12,11 @@
 - `PUT /api/auth/profile` - Update user profile (display_name)✅
 - `PUT /api/auth/password` - Change password ✅
 - `GET /api/users` - List all users (admin only) ✅
-- `GET /api/users/:id` - Get specific user details (admin/editor)
-- `PUT /api/users/:id` - Update user (admin only)
-- `PUT /api/users/:id/activate` - Activate/deactivate user (admin only)
-- `DELETE /api/users/:id` - Soft delete user (admin only)
-- `GET /api/users/stats` - User statistics (total, by role, active)
+- `GET /api/users/:id` - Get specific user details (admin/editor) ✅
+- `PUT /api/users/:id` - Update user (admin only) ✅
+- `PUT /api/users/:id/activate` - Activate/deactivate user (admin only) ✅
+- `DELETE /api/users/:id` - Soft delete user (admin only) ✅
+- `GET /api/users/stats` - User statistics (total, by role, active) ✅
 
 ### **2. Enhanced Article Management**
 

@@ -67,9 +67,10 @@ const authenticate = async (req, res, next) => {
  * @param {string} role - Required role ('admin', 'editor', 'reader')
  * @returns {Function} Express middleware function
  */
-const requireRole = (role) => {
+const requireRole = (roles) => {
   return (req, res, next) => {
-    if (!req.user || req.user.role !== role) {
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         ok: false,
         error: 'Insufficient permissions'
