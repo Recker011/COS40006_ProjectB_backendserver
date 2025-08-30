@@ -40,8 +40,40 @@ function Write-Result {
     Write-Host "----------------------------------------`n"
 }
 
-# Read JWT token from auth-token.txt
-$token = Get-Content -Path "auth-token.txt" -Raw | ForEach-Object { $_.Trim() }
+# Admin credentials
+$adminEmail = "admin@example.com"
+$adminPassword = "admin"
+$loginUrl = "$baseUrl/auth/login"
+
+# Function to perform login and get JWT token
+function Get-AdminAuthToken {
+    param(
+        [string]$Email,
+        [string]$Password,
+        [string]$LoginUri
+    )
+    $loginBody = @{
+        email = $Email
+        password = $Password
+    } | ConvertTo-Json
+
+    try {
+        $response = Invoke-RestMethod -Uri $LoginUri -Method Post -Body $loginBody -ContentType "application/json"
+        if ($response.token) {
+            Write-Host "Admin login successful. Token obtained." -ForegroundColor Green
+            return $response.token
+        } else {
+            Write-Host "Admin login failed: No token received." -ForegroundColor Red
+            exit 1
+        }
+    } catch {
+        Write-Host "Admin login failed. Status Code: $($_.Exception.Response.StatusCode.Value__). Error: $($_.ErrorDetails.Message)" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Obtain admin JWT token
+$token = Get-AdminAuthToken -Email $adminEmail -Password $adminPassword -LoginUri $loginUrl
 
 # Add Authorization header with JWT token
 $headers = @{
