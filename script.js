@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileGetBtn = document.getElementById('profile-get-btn');
     const profileGetResponse = document.getElementById('profile-get-response');
 
+    const profileUpdateDisplayName = document.getElementById('profile-update-display-name');
+    const profileUpdateBtn = document.getElementById('profile-update-btn');
+    const profileUpdateResponse = document.getElementById('profile-update-response');
+
     const articlesSearchInput = document.getElementById('articles-search-input');
     const articlesGetLang = document.getElementById('articles-get-lang'); // New
     const articlesGetTagInput = document.getElementById('articles-get-tag-input'); // New
@@ -203,6 +207,22 @@ document.addEventListener('DOMContentLoaded', () => {
             addLogEntry(`[${new Date().toLocaleString()}] Profile retrieved successfully.`);
         } else {
             addLogEntry(`[${new Date().toLocaleString()}] Failed to retrieve profile.`);
+        }
+    });
+
+    // PUT /api/auth/profile
+    profileUpdateBtn.addEventListener('click', async () => {
+        const newDisplayName = profileUpdateDisplayName.value.trim();
+        if (!newDisplayName) {
+            displayResponse(profileUpdateResponse, { error: 'Display name cannot be empty.' });
+            return;
+        }
+        const data = await apiRequest('/api/auth/profile', 'PUT', { display_name: newDisplayName }, true);
+        displayResponse(profileUpdateResponse, data);
+        if (data.ok) {
+            addLogEntry(`[${new Date().toLocaleString()}] Profile display name updated successfully.`);
+        } else {
+            addLogEntry(`[${new Date().toLocaleString()}] Failed to update profile display name.`);
         }
     });
 

@@ -262,4 +262,79 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/profile
+ * Update current user profile (display_name)
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Request body:
+ * {
+ *   "display_name": "NewDisplayName"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "ok": true,
+ *   "message": "Profile updated successfully",
+ *   "user": {
+ *     "id": 1,
+ *     "email": "user@example.com",
+ *     "displayName": "NewDisplayName",
+ *     "role": "reader"
+ *   }
+ * }
+ */
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { display_name } = req.body;
+    const userId = req.user.id;
+
+    // Input validation
+    if (!display_name || typeof display_name !== 'string' || display_name.trim().length === 0) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid input',
+        details: 'display_name is required and must be a non-empty string.'
+      });
+    }
+
+    // Optional: Add length constraints
+    if (display_name.length < 3 || display_name.length > 50) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid input',
+        details: 'display_name must be between 3 and 50 characters.'
+      });
+    }
+
+    // Update display_name in the database
+    const updateSql = 'UPDATE users SET display_name = ?, updated_at = NOW() WHERE id = ?';
+    await query(updateSql, [display_name, userId]);
+
+    // Fetch the updated user data to return in the response
+    const { rows: updatedUserRows } = await query('SELECT id, email, display_name, role FROM users WHERE id = ?', [userId]);
+    const updatedUser = updatedUserRows[0];
+
+    res.json({
+      ok: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        displayName: updatedUser.display_name,
+        role: updatedUser.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      ok: false,
+      error: 'Failed to update user profile'
+    });
+  }
+});
+
 module.exports = router;

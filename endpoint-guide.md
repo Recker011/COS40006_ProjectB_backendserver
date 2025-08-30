@@ -111,6 +111,39 @@ Authorization: Bearer <jwt_token>
   - `401 Unauthorized`: Access token required, Invalid token, or Token expired
   - `500 Internal Server Error`: Server processing error
 
+#### Update User Profile
+- **Endpoint**: `/api/auth/profile`
+- **Method**: PUT
+- **Description**: Updates the display name of the currently authenticated user.
+- **Authentication:** Requires a valid JWT token in the `Authorization` header.
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Request Body**:
+```json
+{
+  "display_name": "NewDisplayName"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "Profile updated successfully",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "NewDisplayName",
+    "role": "reader"
+  }
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid input (e.g., display_name is missing, empty, too short, or too long)
+  - `401 Unauthorized`: Access token required, Invalid token, or Token expired
+  - `500 Internal Server Error`: Server processing error
+
 ### Article Management
 
 #### List/Search Articles
