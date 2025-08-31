@@ -140,6 +140,34 @@ try {
     exit 1
 }
 
+# Retrieve the tag ID for the new endpoint test
+$tagId = $null
+Write-Host "Retrieving tag ID for '$testTagCode'..." -ForegroundColor DarkYellow
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/tags/$testTagCode" -Method Get -Headers $headers
+    $tagId = $response.id
+    Write-Host "Tag ID for '$testTagCode': $tagId" -ForegroundColor Green
+} catch {
+    Write-Host "Failed to retrieve tag ID. Error: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+
+# Test 4: Get articles by tag ID (GET /api/tags/:id/articles)
+Write-Host "TEST 4: GET /api/tags/$tagId/articles - Get articles by tag ID" -ForegroundColor Magenta
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/tags/$tagId/articles" -Method Get -Headers $headers
+    Write-Result -TestName "Get Articles by Tag ID" -StatusCode 200 -Response $response
+    if ($response.Length -gt 0) {
+        Write-Host "Verification successful: Found $($response.Length) articles for tag ID $tagId." -ForegroundColor Green
+    } else {
+        Write-Host "Verification: No articles found for tag ID $tagId. This might be expected if no articles are tagged." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Result -TestName "Get Articles by Tag ID" -StatusCode $_.Exception.Response.StatusCode.Value__ -Response $_.ErrorDetails.Message
+    Write-Host "Failed to get articles by tag ID. Exiting." -ForegroundColor Red
+    exit 1
+}
+
 # NEW: Pre-Delete Check
 Write-Host "PRE-DELETE CHECK: GET /api/tags/$testTagCode - Confirm tag exists before deletion" -ForegroundColor DarkYellow
 try {

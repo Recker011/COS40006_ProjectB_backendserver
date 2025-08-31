@@ -5,6 +5,7 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
 const { query, pool } = require('../../db');
+const { toISO } = require('../utils/articleUtils');
 
 const router = express.Router();
 
@@ -65,6 +66,7 @@ router.get('/:code', async (req, res) => { //Retrieve a specific tag by code
     
     const sql = `
       SELECT 
+        id,
         code,
         name_en,
         name_bn
@@ -82,6 +84,88 @@ router.get('/:code', async (req, res) => { //Retrieve a specific tag by code
   } catch (error) {
     console.error('Error fetching tag:', error);
     res.status(500).json({ error: 'Failed to retrieve tag' });
+  }
+});
+
+/**
+ * GET /api/tags/:id/articles
+ * Retrieve all published articles associated with a specific tag ID.
+ *
+ * Optional query: ?lang=en|bn
+ *
+ * Response:
+ * [{
+ *   "id": "string",
+ *   "title": "string",
+ *   "content": "string",
+ *   "image_url": "string|null",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "tags": ["tag_code1", "tag_code2"],
+ *   "tags_names": ["Tag Name 1", "Tag Name 2"]
+ * }]
+ */
+router.get('/:id/articles', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lang } = req.query;
+
+    // 1. Input Validation
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid tag ID' });
+    }
+
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    // 2. Check if tag exists
+    const { rows: tagRows } = await query('SELECT id FROM tags WHERE id = ?', [id]);
+    if (!tagRows || tagRows.length === 0) {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+
+    // 3. Fetch articles associated with the tag
+    const sql = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      INNER JOIN article_tags artag
+        ON a.id = artag.article_id
+      INNER JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'published' AND t.id = ?
+      GROUP BY a.id, at.title, at.body, ma.url, a.created_at, a.updated_at
+      ORDER BY a.created_at DESC
+    `;
+
+    const { rows } = await query(sql, [languageCode, id]);
+
+    // 4. Format the response
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: article.created_at ? toISO(article.created_at) : null,
+      updated_at: article.updated_at ? toISO(article.updated_at) : null,
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error('Error fetching articles by tag:', error);
+    res.status(500).json({ error: 'Failed to retrieve articles by tag' });
   }
 });
 
