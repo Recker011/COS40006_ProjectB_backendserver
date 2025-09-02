@@ -46,6 +46,52 @@ router.get('/', async (req, res) => { //Returns what code the tag is along with 
 });
 
 /**
+ * GET /api/tags/popular
+ * Retrieve the most used tags based on their association with articles.
+ *
+ * Optional query: ?limit=number (default 10)
+ *
+ * Response:
+ * [{
+ *   "code": "string",
+ *   "name_en": "string",
+ *   "name_bn": "string",
+ *   "article_count": "number"
+ * }]
+ */
+router.get('/popular', async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const queryLimit = parseInt(limit, 10) || 10; // Default to 10 if not provided or invalid
+
+    if (queryLimit <= 0) {
+      return res.status(400).json({ error: 'Limit must be a positive number' });
+    }
+
+    const sql = `
+      SELECT
+        t.code,
+        t.name_en,
+        t.name_bn,
+        COUNT(artag.article_id) AS article_count
+      FROM tags t
+      INNER JOIN article_tags artag
+        ON t.id = artag.tag_id
+      GROUP BY t.id, t.code, t.name_en, t.name_bn
+      ORDER BY article_count DESC, t.name_en ASC
+      LIMIT ?;
+    `;
+
+    const { rows } = await query(sql, [queryLimit]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching popular tags:', error);
+    res.status(500).json({ error: 'Failed to retrieve popular tags' });
+  }
+});
+
+/**
  * GET /api/tags/:code
  * Retrieve a specific tag by code
  * 

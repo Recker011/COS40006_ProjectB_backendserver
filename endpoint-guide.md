@@ -478,6 +478,26 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
+#### Get Popular Tags
+- **Endpoint**: `/api/tags/popular`
+- **Method**: GET
+- **Query Params**:
+  - `limit`: (optional) Number of popular tags to return. Defaults to 10.
+- **Response**:
+```json
+[
+  {
+    "code": "string",
+    "name_en": "string",
+    "name_bn": "string",
+    "article_count": "number"
+  }
+]
+```
+- **Error Responses**:
+  - `400 Bad Request`: If `limit` is not a positive number.
+  - `500 Internal Server Error`: Server processing error.
+
 #### Create Tag (Admin/Editor only)
 - **Endpoint**: `/api/tags`
 - **Method**: POST

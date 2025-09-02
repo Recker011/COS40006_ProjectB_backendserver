@@ -212,4 +212,59 @@ try {
     Write-Host "Manual cleanup of tag '$testTagCode' may be required." -ForegroundColor Yellow
 }
 
+# Test 5: Get popular tags (GET /api/tags/popular) - Default limit
+Write-Host "TEST 5: GET /api/tags/popular - Get popular tags (default limit)" -ForegroundColor Magenta
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/tags/popular" -Method Get -Headers $headers
+    Write-Result -TestName "Get Popular Tags (Default)" -StatusCode 200 -Response $response
+    if ($response.Length -gt 0) {
+        Write-Host "Verification successful: Found $($response.Length) popular tags." -ForegroundColor Green
+    } else {
+        Write-Host "Verification: No popular tags found. This might be expected if no articles are tagged." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Result -TestName "Get Popular Tags (Default)" -StatusCode $_.Exception.Response.StatusCode.Value__ -Response $_.ErrorDetails.Message
+    Write-Host "Failed to get popular tags (default limit). Error: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 6: Get popular tags with a specific limit (GET /api/tags/popular?limit=3)
+Write-Host "TEST 6: GET /api/tags/popular?limit=3 - Get popular tags (limit 3)" -ForegroundColor Magenta
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/tags/popular?limit=3" -Method Get -Headers $headers
+    Write-Result -TestName "Get Popular Tags (Limit 3)" -StatusCode 200 -Response $response
+    if ($response.Length -eq 3) {
+        Write-Host "Verification successful: Found 3 popular tags as expected." -ForegroundColor Green
+    } elseif ($response.Length -lt 3) {
+        Write-Host "Verification: Found $($response.Length) popular tags (less than 3, possibly due to fewer available tags)." -ForegroundColor Yellow
+    } else {
+        Write-Host "Verification failed: Expected 3 tags, but got $($response.Length)." -ForegroundColor Red
+    }
+} catch {
+    Write-Result -TestName "Get Popular Tags (Limit 3)" -StatusCode $_.Exception.Response.StatusCode.Value__ -Response $_.ErrorDetails.Message
+    Write-Host "Failed to get popular tags (limit 3). Error: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 7: Get popular tags with an invalid limit (GET /api/tags/popular?limit=0)
+Write-Host "TEST 7: GET /api/tags/popular?limit=0 - Get popular tags (invalid limit 0)" -ForegroundColor Magenta
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/tags/popular?limit=0" -Method Get -Headers $headers -ErrorAction Stop
+    Write-Result -TestName "Get Popular Tags (Invalid Limit 0)" -StatusCode 200 -Response $response
+    Write-Host "Verification failed: Expected 400 Bad Request, but got 200 OK." -ForegroundColor Red
+} catch {
+    $errorResponse = $_.Exception.Response
+    if ($errorResponse) {
+        $statusCode = $errorResponse.StatusCode.Value__
+        $errorMessage = $_.ErrorDetails.Message
+        Write-Result -TestName "Get Popular Tags (Invalid Limit 0)" -StatusCode $statusCode -Response $errorMessage
+        if ($statusCode -eq 400) {
+            Write-Host "Verification successful: Received 400 Bad Request for invalid limit." -ForegroundColor Green
+        } else {
+            Write-Host "Verification failed: Expected 400 Bad Request, but got $statusCode." -ForegroundColor Red
+        }
+    } else {
+        Write-Result -TestName "Get Popular Tags (Invalid Limit 0)" -StatusCode 0 -Response $_.Exception.Message
+        Write-Host "Verification failed: No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 Write-Host "`nTag API testing completed!" -ForegroundColor Green
