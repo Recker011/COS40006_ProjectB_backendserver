@@ -541,3 +541,51 @@ footer {
         font-size: 0.9rem;
     }
 }
+/* Suggestions demo styles */
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+.suggestion-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+.suggestion-type {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ecf0f1;
+  color: #2c3e50;
+  white-space: nowrap;
+}
+.suggestion-type--articles { background: #e8f4f8; color: #2980b9; }
+.suggestion-type--categories { background: #eaf7ea; color: #2d8a43; }
+.suggestion-type--tags { background: #f7ecf0; color: #b8437b; }
+
+.suggestion-main {
+  flex: 1;
+  min-width: 0;
+}
+.suggestion-title {
+  font-weight: 600;
+}
+.suggestion-sub {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 2px;
+}
+
+/* Highlight marker for <c>...</c> converted to <mark class="hl"> */
+mark.hl {
+  background: #fff2a8;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 3px;
+}

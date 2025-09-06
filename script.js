@@ -9,6 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const healthCheckBtn = document.getElementById('health-check-btn');
     const healthCheckResponse = document.getElementById('health-check-response');
 
+    // Search API Demo Elements
+    const searchQ = document.getElementById('search-q');
+    const searchTypeArticles = document.getElementById('search-type-articles');
+    const searchTypeCategories = document.getElementById('search-type-categories');
+    const searchTypeTags = document.getElementById('search-type-tags');
+    const searchLang = document.getElementById('search-lang');
+    const searchLimit = document.getElementById('search-limit');
+    const searchPage = document.getElementById('search-page');
+    const searchIncludeCounts = document.getElementById('search-includeCounts');
+    const searchExecBtn = document.getElementById('search-exec-btn');
+    const searchResponse = document.getElementById('search-response');
+
     const loginEmail = document.getElementById('login-email');
     const loginPassword = document.getElementById('login-password');
     const loginBtn = document.getElementById('login-btn');
@@ -145,6 +157,37 @@ document.addEventListener('DOMContentLoaded', () => {
     healthCheckBtn.addEventListener('click', async () => {
         const data = await apiRequest('/api/health');
         displayResponse(healthCheckResponse, data);
+    });
+
+    // GET /api/search
+    searchExecBtn?.addEventListener('click', async () => {
+        const q = (searchQ?.value || '').trim();
+        if (!q) {
+            displayResponse(searchResponse, { error: 'q is required' });
+            return;
+        }
+        const types = [];
+        if (searchTypeArticles?.checked) types.push('articles');
+        if (searchTypeCategories?.checked) types.push('categories');
+        if (searchTypeTags?.checked) types.push('tags');
+
+        const params = new URLSearchParams();
+        params.set('q', q);
+        // Only set types when not all selected to keep URL concise (API defaults to all)
+        if (types.length > 0 && types.length < 3) {
+            params.set('types', types.join(','));
+        }
+        const lang = searchLang?.value || 'en';
+        if (lang) params.set('lang', lang);
+        const lim = parseInt(searchLimit?.value, 10);
+        if (!Number.isNaN(lim) && lim > 0) params.set('limit', String(lim));
+        const pg = parseInt(searchPage?.value, 10);
+        if (!Number.isNaN(pg) && pg > 0) params.set('page', String(pg));
+        if (searchIncludeCounts?.checked) params.set('includeCounts', 'true');
+
+        const endpoint = `/api/search?${params.toString()}`;
+        const data = await apiRequest(endpoint);
+        displayResponse(searchResponse, data);
     });
 
     // POST /api/auth/login
@@ -356,4 +399,188 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
+});
+// --- Suggestions demo (GET /api/search/suggestions) ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Elements for suggestions demo
+  const suggQ = document.getElementById('suggestions-q');
+  const suggTypeArticles = document.getElementById('suggestions-type-articles');
+  const suggTypeCategories = document.getElementById('suggestions-type-categories');
+  const suggTypeTags = document.getElementById('suggestions-type-tags');
+  const suggLang = document.getElementById('suggestions-lang');
+  const suggLimit = document.getElementById('suggestions-limit');
+  const suggPerTypeLimit = document.getElementById('suggestions-perTypeLimit');
+  const suggIncludeMeta = document.getElementById('suggestions-includeMeta');
+  const suggExecBtn = document.getElementById('suggestions-exec-btn');
+  const suggList = document.getElementById('suggestions-list');
+  const suggResponse = document.getElementById('suggestions-response');
+
+  // If the section isn't present, no-op
+  if (!suggQ || !suggExecBtn || !suggList || !suggResponse) return;
+
+  // Simple debounce utility
+  const debounce = (fn, wait = 300) => {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  };
+
+  // HTML escaping then convert <c>..</c> markers to <mark class="hl">..</mark>
+  const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  const escapeHTML = (s) => String(s).replace(/[&<>"']/g, ch => ESC_MAP[ch]);
+  const highlightHTML = (s) =>
+    escapeHTML(s || '')
+      .replace(/&lt;c&gt;/g, '<mark class="hl">')
+      .replace(/&lt;\/c&gt;/g, '</mark>');
+
+  const getSelectedTypes = () => {
+    const types = [];
+    if (suggTypeArticles?.checked) types.push('articles');
+    if (suggTypeCategories?.checked) types.push('categories');
+    if (suggTypeTags?.checked) types.push('tags');
+    return types;
+  };
+
+  // Builds the endpoint with query params
+  const buildEndpoint = () => {
+    const q = (suggQ.value || '').trim();
+    const params = new URLSearchParams();
+    params.set('q', q);
+
+    const types = getSelectedTypes();
+    // API default includes all; only set when not all selected and not empty
+    if (types.length > 0 && types.length < 3) {
+      params.set('types', types.join(','));
+    }
+
+    const lang = suggLang?.value || 'en';
+    if (lang) params.set('lang', lang);
+
+    const lim = parseInt(suggLimit?.value, 10);
+    if (!Number.isNaN(lim) && lim > 0) params.set('limit', String(lim));
+
+    const ptl = parseInt(suggPerTypeLimit?.value, 10);
+    if (!Number.isNaN(ptl) && ptl > 0) params.set('perTypeLimit', String(ptl));
+
+    if (suggIncludeMeta?.checked) params.set('includeMeta', 'true');
+
+    return `/api/search/suggestions?${params.toString()}`;
+  };
+
+  const clearList = () => {
+    suggList.innerHTML = '';
+  };
+
+  const typeBadge = (t) => {
+    const map = { articles: 'Article', categories: 'Category', tags: 'Tag' };
+    return map[t] || t;
+  };
+
+  // Render a compact list of suggestions
+  const renderList = (suggestions = []) => {
+    clearList();
+    if (!Array.isArray(suggestions) || suggestions.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = 'No suggestions';
+      suggList.appendChild(li);
+      return;
+    }
+
+    for (const item of suggestions) {
+      const li = document.createElement('li');
+      li.className = 'suggestion-item';
+
+      const badge = document.createElement('span');
+      badge.className = `suggestion-type suggestion-type--${item.type}`;
+      badge.textContent = typeBadge(item.type);
+
+      const main = document.createElement('div');
+      main.className = 'suggestion-main';
+
+      // Build label HTML depending on type
+      let title = '';
+      let subtitle = '';
+      if (item.type === 'articles') {
+        const titleHL = item.highlight?.title || item.title || '';
+        const slugHL = item.highlight?.slug || item.slug || '';
+        title = highlightHTML(titleHL);
+        subtitle = `/${highlightHTML(slugHL)}`;
+      } else if (item.type === 'categories') {
+        const nameHL = item.highlight?.name || item.name || '';
+        const codeHL = item.highlight?.code || item.code || '';
+        title = highlightHTML(nameHL);
+        subtitle = `:${highlightHTML(codeHL)}`;
+      } else if (item.type === 'tags') {
+        const nameHL = item.highlight?.name || item.name || '';
+        const codeHL = item.highlight?.code || item.code || '';
+        title = highlightHTML(nameHL);
+        subtitle = `#${highlightHTML(codeHL)}`;
+      } else {
+        // Fallback
+        title = escapeHTML(item.title || item.name || item.code || JSON.stringify(item));
+        subtitle = '';
+      }
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'suggestion-title';
+      titleEl.innerHTML = title;
+
+      const subEl = document.createElement('div');
+      subEl.className = 'suggestion-sub';
+      subEl.innerHTML = subtitle;
+
+      main.appendChild(titleEl);
+      if (subtitle) main.appendChild(subEl);
+
+      li.appendChild(badge);
+      li.appendChild(main);
+      suggList.appendChild(li);
+    }
+  };
+
+  // Uses global apiRequest helper defined earlier in this file
+  const runSuggestionsQuery = async (showJSON = false) => {
+    const q = (suggQ.value || '').trim();
+    if (!q) {
+      renderList([]);
+      if (showJSON) {
+        suggResponse.textContent = JSON.stringify({ error: 'q is required' }, null, 2);
+      }
+      return;
+    }
+    const endpoint = buildEndpoint();
+    const data = await (window.apiRequest ? window.apiRequest(endpoint) : fetch(endpoint).then(r => r.json()).catch(e => ({ error: e.message })));
+    renderList(data?.suggestions || []);
+    if (showJSON) {
+      const pretty = JSON.stringify(data, null, 2);
+      suggResponse.textContent = pretty;
+    }
+  };
+
+  // Expose apiRequest if not in window scope (ensures compatibility if the helper above changes scope)
+  if (!window.apiRequest) {
+    window.apiRequest = async (endpoint, method = 'GET', body = null) => {
+      const headers = { 'Content-Type': 'application/json' };
+      const options = { method, headers };
+      if (body) options.body = JSON.stringify(body);
+      const resp = await fetch(endpoint, options);
+      if (resp.status === 204) return { ok: true, message: 'No Content' };
+      return resp.json();
+    };
+  }
+
+  // Wire events
+  suggExecBtn.addEventListener('click', () => runSuggestionsQuery(true));
+
+  const debouncedAuto = debounce(() => runSuggestionsQuery(false), 300);
+  suggQ.addEventListener('input', debouncedAuto);
+  suggTypeArticles?.addEventListener('change', debouncedAuto);
+  suggTypeCategories?.addEventListener('change', debouncedAuto);
+  suggTypeTags?.addEventListener('change', debouncedAuto);
+  suggLang?.addEventListener('change', debouncedAuto);
+  suggLimit?.addEventListener('input', debouncedAuto);
+  suggPerTypeLimit?.addEventListener('input', debouncedAuto);
+  suggIncludeMeta?.addEventListener('change', debouncedAuto);
 });

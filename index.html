@@ -47,6 +47,57 @@
             <h2>API Demonstrations</h2>
 
             <div class="api-demo-section">
+                <h3>GET /api/search</h3>
+                <p>Global search across articles, categories, and tags.</p>
+                <input type="text" id="search-q" placeholder="Search term (required)">
+                <div style="margin: 8px 0;">
+                  <label><input type="checkbox" id="search-type-articles" checked> Articles</label>
+                  <label><input type="checkbox" id="search-type-categories" checked> Categories</label>
+                  <label><input type="checkbox" id="search-type-tags" checked> Tags</label>
+                </div>
+                <div style="margin: 8px 0;">
+                  <label for="search-lang">Language:</label>
+                  <select id="search-lang">
+                    <option value="en" selected>English</option>
+                    <option value="bn">Bengali</option>
+                  </select>
+                </div>
+                <div style="margin: 8px 0;">
+                  <input type="number" id="search-limit" placeholder="limit (default 10)" min="1" max="100" style="width:160px;">
+                  <input type="number" id="search-page" placeholder="page (default 1)" min="1" style="width:160px;">
+                  <label style="margin-left:8px;"><input type="checkbox" id="search-includeCounts"> includeCounts</label>
+                </div>
+                <button id="search-exec-btn">Execute</button>
+                <pre><code id="search-response"></code></pre>
+            </div>
+
+            <div class="api-demo-section">
+                <h3>GET /api/search/suggestions</h3>
+                <p>Autocomplete suggestions across articles, categories, and tags.</p>
+                <input type="text" id="suggestions-q" placeholder="Type to get suggestions...">
+                <div style="margin: 8px 0;">
+                  <label><input type="checkbox" id="suggestions-type-articles" checked> Articles</label>
+                  <label><input type="checkbox" id="suggestions-type-categories" checked> Categories</label>
+                  <label><input type="checkbox" id="suggestions-type-tags" checked> Tags</label>
+                </div>
+                <div style="margin: 8px 0;">
+                  <label for="suggestions-lang">Language:</label>
+                  <select id="suggestions-lang">
+                    <option value="en" selected>English</option>
+                    <option value="bn">Bengali</option>
+                  </select>
+                  <input type="number" id="suggestions-limit" placeholder="limit (default 10)" min="1" max="20" style="width:160px;margin-left:12px;">
+                  <input type="number" id="suggestions-perTypeLimit" placeholder="perTypeLimit (default 5)" min="1" max="10" style="width:220px;margin-left:12px;">
+                  <label style="margin-left:8px;"><input type="checkbox" id="suggestions-includeMeta"> includeMeta</label>
+                </div>
+                <div style="margin: 8px 0;">
+                  <button id="suggestions-exec-btn">Execute</button>
+                  <small style="margin-left:10px;color:#555;">Typing in the input will auto-fetch (debounced).</small>
+                </div>
+                <ul id="suggestions-list" class="suggestions-list"></ul>
+                <pre><code id="suggestions-response"></code></pre>
+            </div>
+            <div class="api-demo-section">
                 <h3>GET /api/health</h3>
                 <p>Checks server and database health.</p>
                 <button id="health-check-btn">Execute</button>

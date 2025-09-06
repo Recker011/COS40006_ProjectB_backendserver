@@ -567,6 +567,89 @@ Authorization: Bearer <jwt_token>
   - `404 Not Found`: Tag with the specified code does not exist.
   - `500 Internal Server Error`: Server processing error.
 
+### Global Search
+- Endpoint: `/api/search`
+- Method: GET
+- Description: Global search across articles, categories, and tags using bilingual content where applicable. This endpoint does not require authentication and does not modify the database.
+
+Query Parameters:
+- q: string (required) — the search term (case-insensitive). Max 100 characters.
+- types: CSV subset of `articles,categories,tags` (optional). Default: all three.
+- lang: `en` | `bn` (optional). Default: `en`. Determines which localized fields are used for category and tag names.
+- limit: integer (optional) per-type page size. Default 10, min 1, max 100.
+- page: integer (optional) per-type page number (1-based). Default 1.
+- includeCounts: boolean (optional). Default false. When true, includes total counts per type and precise hasMore.
+
+Notes:
+- Sorting: Default ordering is newest (articles) and alpha (categories/tags). Relevance scoring can be added later without breaking the API.
+- Status filter: Articles are filtered to only `status = 'published'`.
+
+Success Response (200 OK):
+{
+  "query": "string",
+  "types": ["articles","categories","tags"],
+  "page": 1,
+  "limit": 10,
+  "sort": "default",
+  "results": {
+    "articles": {
+      "items": [
+        {
+          "id": "1",
+          "title": "Search Test Article",
+          "slug": "search-test-article",
+          "excerpt": "First 220 chars of text...",
+          "created_at": "2025-09-06T01:50:00.000Z",
+          "updated_at": "2025-09-06T01:50:00.000Z",
+          "category_name": "General",
+          "tag_codes": ["searchdemo","alpha"],
+          "tag_names": ["Searchdemo","Alpha"]
+        }
+      ],
+      "total": 1,        // only when includeCounts=true
+      "page": 1,
+      "limit": 10,
+      "hasMore": false
+    },
+    "categories": {
+      "items": [
+        { "id": 1, "code": "general", "name": "General", "created_at": "2025-08-01T00:00:00.000Z" }
+      ],
+      "total": 1,        // only when includeCounts=true
+      "page": 1,
+      "limit": 10,
+      "hasMore": false
+    },
+    "tags": {
+      "items": [
+        { "id": 10, "code": "searchdemo", "name": "Searchdemo", "created_at": "2025-08-10T00:00:00.000Z" }
+      ],
+      "total": 1,        // only when includeCounts=true
+      "page": 1,
+      "limit": 10,
+      "hasMore": false
+    }
+  }
+}
+
+Error Responses:
+- 400 Bad Request: q is required or too long
+- 422 Unprocessable Entity: Invalid type(s) in `types`
+- 500 Internal Server Error: Unexpected server error
+
+Examples:
+- Search all types (default English):
+  curl "http://localhost:3000/api/search?q=health"
+
+- Articles only, include totals:
+  curl "http://localhost:3000/api/search?q=vaccination&types=articles&includeCounts=true"
+
+- Tags in Bangla:
+  curl "http://localhost:3000/api/search?q=স্বাস্থ্য&types=tags&lang=bn"
+
+- Pagination (limit=5, page=2):
+  curl "http://localhost:3000/api/search?q=water&limit=5&page=2"
+
 ### Testing Tag Endpoints
 
 #### Create Tag (No Authentication)

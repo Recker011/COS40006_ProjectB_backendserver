@@ -85,8 +85,10 @@
 
 ### **6. Search & Analytics**
 
-**Additions:**
-- `GET /api/search` - Global search across articles, categories, tags
+**Currently available:**
+ - `GET /api/search` - Global search across articles, categories, tags ✅
+ 
+ **Additions:**
 - `GET /api/search/suggestions` - Search suggestions/autocomplete
 - `POST /api/analytics/view` - Track article views
 - `GET /api/analytics/articles/:id` - Article analytics
