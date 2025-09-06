@@ -37,6 +37,47 @@ function Write-Result {
     Write-Host "----------------------------------------`n"
 }
 
+# Admin credentials
+$adminEmail = "admin@example.com"
+$adminPassword = "admin"
+$loginUrl = "$baseUrl/auth/login"
+
+# Function to perform login and get JWT token
+function Get-AdminAuthToken {
+    param(
+        [string]$Email,
+        [string]$Password,
+        [string]$LoginUri
+    )
+    $loginBody = @{
+        email = $Email
+        password = $Password
+    } | ConvertTo-Json
+
+    try {
+        $response = Invoke-RestMethod -Uri $LoginUri -Method Post -Body $loginBody -ContentType "application/json"
+        if ($response.token) {
+            Write-Host "Admin login successful. Token obtained." -ForegroundColor Green
+            return $response.token
+        } else {
+            Write-Host "Admin login failed: No token received." -ForegroundColor Red
+            exit 1
+        }
+    } catch {
+        Write-Host "Admin login failed. Status Code: $($_.Exception.Response.StatusCode.Value__). Error: $($_.ErrorDetails.Message)" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Obtain admin JWT token
+$token = Get-AdminAuthToken -Email $adminEmail -Password $adminPassword -LoginUri $loginUrl
+
+# Add Authorization header with JWT token
+$headers = @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer $token"
+}
+
 # Test 1: Get all categories (GET /api/categories)
 Write-Host "TEST 1: GET /api/categories - Retrieve all categories" -ForegroundColor Magenta
 try {
@@ -193,6 +234,103 @@ if ($testCategoryId) {
             Write-Result -TestName "Get Category with Invalid ID" -StatusCode 0 -Response $_.Exception.Message
             Write-Host "Verification failed: No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
         }
+    }
+}
+
+$uniqueId = (Get-Date -Format "yyyyMMddHHmmssfff")
+$testCategoryNameEn = "Test Category English $uniqueId"
+$testCategoryNameBn = "Test Category Bengali $uniqueId"
+$createdCategoryId = $null
+
+# Test 6: Create a new category (POST /api/categories)
+Write-Host "TEST 6: POST /api/categories - Create a new category" -ForegroundColor Magenta
+$categoryData = @{
+    name_en = $testCategoryNameEn
+    name_bn = $testCategoryNameBn
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-RestMethod -Uri "$baseUrl/categories" -Method Post -Headers $headers -Body $categoryData -ErrorAction Stop
+    Write-Result -TestName "Create Category" -StatusCode 201 -Response $response
+    
+    if ($response.id -and $response.name_en -eq $testCategoryNameEn) {
+        Write-Host "Verification successful: Category created with ID $($response.id) and correct English name." -ForegroundColor Green
+        $createdCategoryId = $response.id
+    } else {
+        Write-Host "Verification failed: Category not created as expected." -ForegroundColor Red
+    }
+} catch {
+    $errorResponse = $_.Exception.Response
+    if ($errorResponse) {
+        $statusCode = $errorResponse.StatusCode.Value__
+        $errorMessage = $_.ErrorDetails.Message
+        Write-Result -TestName "Create Category" -StatusCode $statusCode -Response $errorMessage
+        if ($statusCode -eq 409) {
+            Write-Host "Category '$testCategoryNameEn' already exists. Skipping creation and attempting to find existing for cleanup." -ForegroundColor Yellow
+            # Attempt to find the existing category for cleanup
+            try {
+                $existingCategories = Invoke-RestMethod -Uri "$baseUrl/categories" -Method Get -Headers $headers -ErrorAction Stop
+                $existingCategory = $existingCategories | Where-Object { $_.name_en -eq $testCategoryNameEn }
+                if ($existingCategory) {
+                    $createdCategoryId = $existingCategory.id
+                    Write-Host "Found existing category ID: $createdCategoryId for cleanup." -ForegroundColor Green
+                }
+            } catch {
+                Write-Host "Failed to find existing category for cleanup. Error: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Failed to create category. HTTP Status Code: $statusCode. Error: $errorMessage" -ForegroundColor Red
+        }
+    } else {
+        Write-Result -TestName "Create Category" -StatusCode 0 -Response $_.Exception.Message
+        Write-Host "Failed to create category. No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+# Test 7: Delete the created category (DELETE /api/categories/:id)
+if ($createdCategoryId) {
+    Write-Host "TEST 7: DELETE /api/categories/$createdCategoryId - Delete the created category" -ForegroundColor Magenta
+    try {
+        Invoke-RestMethod -Uri "$baseUrl/categories/$createdCategoryId" -Method Delete -Headers $headers -ErrorAction Stop
+        Write-Result -TestName "Delete Category" -StatusCode 204 -Response "Category successfully deleted."
+        Write-Host "Verification successful: Category '$createdCategoryId' successfully deleted (expected 204 No Content)." -ForegroundColor Green
+    } catch {
+        $errorResponse = $_.Exception.Response
+        if ($errorResponse) {
+            $statusCode = $errorResponse.StatusCode.Value__
+            $errorMessage = $_.ErrorDetails.Message
+            Write-Result -TestName "Delete Category" -StatusCode $statusCode -Response $errorMessage
+            Write-Host "Failed to delete category. HTTP Status Code: $statusCode. Error: $errorMessage" -ForegroundColor Red
+        } else {
+            Write-Result -TestName "Delete Category" -StatusCode 0 -Response $_.Exception.Message
+            Write-Host "Failed to delete category. No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+} else {
+    Write-Host "Skipping deletion test as no category was created or found." -ForegroundColor Yellow
+}
+
+# Test 8: Delete a non-existent category (DELETE /api/categories/:id)
+$nonExistentDeleteId = 99999 # Assuming this ID does not exist
+Write-Host "TEST 8: DELETE /api/categories/$nonExistentDeleteId - Delete non-existent category" -ForegroundColor Magenta
+try {
+    Invoke-RestMethod -Uri "$baseUrl/categories/$nonExistentDeleteId" -Method Delete -Headers $headers -ErrorAction Stop
+    Write-Result -TestName "Delete Non-Existent Category" -StatusCode 200 -Response "Unexpected success (expected 404)"
+    Write-Host "Verification failed: Expected 404 Not Found, but got 200 OK." -ForegroundColor Red
+} catch {
+    $errorResponse = $_.Exception.Response
+    if ($errorResponse) {
+        $statusCode = $errorResponse.StatusCode.Value__
+        $errorMessage = $_.ErrorDetails.Message
+        Write-Result -TestName "Delete Non-Existent Category" -StatusCode $statusCode -Response $errorMessage
+        if ($statusCode -eq 404) {
+            Write-Host "Verification successful: Received 404 Not Found for non-existent category deletion." -ForegroundColor Green
+        } else {
+            Write-Host "Verification failed: Expected 404 Not Found, but got $statusCode." -ForegroundColor Red
+        }
+    } else {
+        Write-Result -TestName "Delete Non-Existent Category" -StatusCode 0 -Response $_.Exception.Message
+        Write-Host "Verification failed: No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
