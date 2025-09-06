@@ -58,8 +58,8 @@
 - `GET /api/tags` - List all tags✅
 - `GET /api/tags/:id` - Get specific tag✅
 - `POST /api/tags` - Create new tag (admin/editor)✅
-- `PUT /api/tags/:id` - Update tag (admin/editor)
-- `DELETE /api/tags/:id` - Delete tag (admin/editor)
+- `PUT /api/tags/:id` - Update tag (admin/editor)✅
+- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅
 - `GET /api/tags/:id/articles` - Articles with specific tag
 - `GET /api/tags/popular` - Most used tags
 - `PUT /api/tags/:id` - Update tag (admin/editor)✅
