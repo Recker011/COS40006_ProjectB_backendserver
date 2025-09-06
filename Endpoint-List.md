@@ -49,7 +49,7 @@
 - `POST /api/categories` - Create new category (admin/editor) ✅
 - `PUT /api/categories/:id` - Update category (admin/editor) ✅
 - `DELETE /api/categories/:id` - Delete category (admin/editor) ✅
-- `GET /api/categories/:id/articles` - Articles in specific category
+- `GET /api/categories/:id/articles` - Articles in specific category ✅
 - `GET /api/categories/stats` - Category statistics (article count per category)
 
 ### **4. Tag Management**

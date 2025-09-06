@@ -607,6 +607,33 @@ Authorization: Bearer <jwt_token>
   - `404 Not Found`: Category not found.
   - `500 Internal Server Error`: Server processing error.
 
+#### List Articles in Specific Category
+- **Endpoint**: `/api/categories/:id/articles`
+- **Method**: GET
+- **Description**: Retrieves all published articles belonging to a specific category with multilingual support.
+- **Path Parameters**:
+  - `id`: The ID of the category to retrieve articles from.
+- **Query Params**:
+  - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
+- **Response**:
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "image_url": "string|null",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"]
+  }
+]
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID.
+  - `404 Not Found`: Category not found.
+  - `500 Internal Server Error`: Server processing error.
 #### Create Category (Admin/Editor only)
 - **Endpoint**: `/api/categories`
 - **Method**: POST
