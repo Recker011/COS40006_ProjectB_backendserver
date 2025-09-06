@@ -287,9 +287,56 @@ try {
     }
 }
 
+# Test 7: Update the created category (PUT /api/categories/:id)
+if ($createdCategoryId) {
+    Write-Host "TEST 7: PUT /api/categories/$createdCategoryId - Update the created category" -ForegroundColor Magenta
+    $updatedCategoryNameEn = "Updated Category English $uniqueId"
+    $updatedCategoryNameBn = "Updated Category Bengali $uniqueId"
+    $updateCategoryData = @{
+        name_en = $updatedCategoryNameEn
+        name_bn = $updatedCategoryNameBn
+    } | ConvertTo-Json
+
+    try {
+        $response = Invoke-RestMethod -Uri "$baseUrl/categories/$createdCategoryId" -Method Put -Headers $headers -Body $updateCategoryData -ErrorAction Stop
+        Write-Result -TestName "Update Category" -StatusCode 200 -Response $response
+        
+        if ($response.id -eq $createdCategoryId -and $response.name_en -eq $updatedCategoryNameEn) {
+            Write-Host "Verification successful: Category ID $($response.id) updated with new English name." -ForegroundColor Green
+        } else {
+            Write-Host "Verification failed: Category not updated as expected." -ForegroundColor Red
+        }
+    } catch {
+        $errorResponse = $_.Exception.Response
+        if ($errorResponse) {
+            $statusCode = $errorResponse.StatusCode.Value__
+            $errorMessage = $_.ErrorDetails.Message
+            Write-Result -TestName "Update Category" -StatusCode $statusCode -Response $errorMessage
+            Write-Host "Failed to update category. HTTP Status Code: $statusCode. Error: $errorMessage" -ForegroundColor Red
+        } else {
+            Write-Result -TestName "Update Category" -StatusCode 0 -Response $_.Exception.Message
+            Write-Host "Failed to update category. No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+
+    # Optional: Verify the update with a GET request
+    Write-Host "Verifying update with GET /api/categories/$createdCategoryId" -ForegroundColor DarkYellow
+    try {
+        $getResponse = Invoke-RestMethod -Uri "$baseUrl/categories/$createdCategoryId" -Method Get -Headers $headers -ErrorAction Stop
+        if ($getResponse.name_en -eq $updatedCategoryNameEn) {
+            Write-Host "GET verification successful: Retrieved category has the updated English name." -ForegroundColor Green
+        } else {
+            Write-Host "GET verification failed: Retrieved category does not have the updated English name." -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "GET verification failed. Error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+} else {
+    Write-Host "Skipping update test as no category was created or found." -ForegroundColor Yellow
+}
 # Test 7: Delete the created category (DELETE /api/categories/:id)
 if ($createdCategoryId) {
-    Write-Host "TEST 7: DELETE /api/categories/$createdCategoryId - Delete the created category" -ForegroundColor Magenta
+    Write-Host "TEST 8: DELETE /api/categories/$createdCategoryId - Delete the created category" -ForegroundColor Magenta
     try {
         Invoke-RestMethod -Uri "$baseUrl/categories/$createdCategoryId" -Method Delete -Headers $headers -ErrorAction Stop
         Write-Result -TestName "Delete Category" -StatusCode 204 -Response "Category successfully deleted."
@@ -312,7 +359,7 @@ if ($createdCategoryId) {
 
 # Test 8: Delete a non-existent category (DELETE /api/categories/:id)
 $nonExistentDeleteId = 99999 # Assuming this ID does not exist
-Write-Host "TEST 8: DELETE /api/categories/$nonExistentDeleteId - Delete non-existent category" -ForegroundColor Magenta
+Write-Host "TEST 9: DELETE /api/categories/$nonExistentDeleteId - Delete non-existent category" -ForegroundColor Magenta
 try {
     Invoke-RestMethod -Uri "$baseUrl/categories/$nonExistentDeleteId" -Method Delete -Headers $headers -ErrorAction Stop
     Write-Result -TestName "Delete Non-Existent Category" -StatusCode 200 -Response "Unexpected success (expected 404)"

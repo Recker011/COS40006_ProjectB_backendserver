@@ -153,6 +153,107 @@ router.post('/', authenticate, async (req, res) => {
     } finally {
       connection.release();
     }
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({ error: 'Failed to create category', details: error.message });
+  }
+});
+/**
+ * PUT /api/categories/:id
+ * Update category (admin/editor)
+ *
+ * Request Body:
+ * {
+ *   "name_en": "string (required)",
+ *   "name_bn": "string (optional)"
+ * }
+ *
+ * Response: Updated category object
+ */
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name_en, name_bn } = req.body;
+
+    // Validate ID
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid category ID' });
+    }
+
+    // Validate required fields
+    if (!name_en || typeof name_en !== 'string' || name_en.trim().length === 0) {
+      return res.status(400).json({ error: 'English name is required' });
+    }
+
+    // Check user role
+    if (req.user.role !== 'admin' && req.user.role !== 'editor') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Check if category exists
+      const [existingCategoryRows] = await connection.execute(
+        'SELECT id, name_en, code FROM categories WHERE id = ?',
+        [id]
+      );
+
+      if (Array.isArray(existingCategoryRows) && existingCategoryRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Category not found' });
+      }
+
+      // Check if category with the new English name already exists (excluding the current category)
+      const [duplicateNameRows] = await connection.execute(
+        'SELECT id FROM categories WHERE name_en = ? AND id != ?',
+        [name_en.trim(), id]
+      );
+
+      if (Array.isArray(duplicateNameRows) && duplicateNameRows.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({ error: 'Category with this English name already exists' });
+      }
+
+      // Generate a new code if name_en has changed
+      const oldNameEn = existingCategoryRows[0].name_en;
+      let code = existingCategoryRows[0].code; // Keep existing code by default
+      if (name_en.trim() !== oldNameEn) {
+        code = name_en.trim().toLowerCase().replace(/\s+/g, '-');
+      }
+
+      // Update category
+      await connection.execute(
+        'UPDATE categories SET name_en = ?, name_bn = ?, code = ? WHERE id = ?',
+        [
+          name_en.trim(),
+          name_bn ? name_bn.trim() : '',
+          code,
+          id
+        ]
+      );
+
+      await connection.commit();
+
+      // Return the updated category
+      res.status(200).json({
+        id: parseInt(id),
+        name_en: name_en.trim(),
+        name_bn: name_bn ? name_bn.trim() : '',
+        code: code
+      });
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ error: 'Failed to update category', details: error.message });
+  }
+});
 /**
  * DELETE /api/categories/:id
  * Delete a category by ID
@@ -207,10 +308,5 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-  } catch (error) {
-    console.error('Error creating category:', error);
-    res.status(500).json({ error: 'Failed to create category', details: error.message });
-  }
-});
 
 module.exports = router;
