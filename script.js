@@ -71,13 +71,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleUpdateLang = document.getElementById('article-update-lang'); // New
     const articleUpdateBtn = document.getElementById('article-update-btn');
     const articleUpdateResponse = document.getElementById('article-update-response');
+const articleDeleteId = document.getElementById('article-delete-id');
+const articleDeleteBtn = document.getElementById('article-delete-btn');
+const articleDeleteResponse = document.getElementById('article-delete-response');
 
-    const articleDeleteId = document.getElementById('article-delete-id');
-    const articleDeleteBtn = document.getElementById('article-delete-btn');
-    const articleDeleteResponse = document.getElementById('article-delete-response');
+// Tag demo elements
+const tagsListLang = document.getElementById('tags-list-lang');
+const tagsListBtn = document.getElementById('tags-list-btn');
+const tagsListResponse = document.getElementById('tags-list-response');
+
+const tagsPopularLimit = document.getElementById('tags-popular-limit');
+const tagsPopularBtn = document.getElementById('tags-popular-btn');
+const tagsPopularResponse = document.getElementById('tags-popular-response');
+
+const tagGetCode = document.getElementById('tag-get-code');
+const tagGetBtn = document.getElementById('tag-get-btn');
+const tagGetResponse = document.getElementById('tag-get-response');
+
+const tagArticlesId = document.getElementById('tag-articles-id');
+const tagArticlesLang = document.getElementById('tag-articles-lang');
+const tagArticlesBtn = document.getElementById('tag-articles-btn');
+const tagArticlesResponse = document.getElementById('tag-articles-response');
+
+const tagCreateCode = document.getElementById('tag-create-code');
+const tagCreateNameEn = document.getElementById('tag-create-name-en');
+const tagCreateNameBn = document.getElementById('tag-create-name-bn');
+const tagCreateBtn = document.getElementById('tag-create-btn');
+const tagCreateResponse = document.getElementById('tag-create-response');
+
+const tagUpdateCode = document.getElementById('tag-update-code');
+const tagUpdateNameEn = document.getElementById('tag-update-name-en');
+const tagUpdateNameBn = document.getElementById('tag-update-name-bn');
+const tagUpdateBtn = document.getElementById('tag-update-btn');
+const tagUpdateResponse = document.getElementById('tag-update-response');
+
+const tagDeleteCode = document.getElementById('tag-delete-code');
+const tagDeleteBtn = document.getElementById('tag-delete-btn');
+const tagDeleteResponse = document.getElementById('tag-delete-response');
 
 
-    // Unit Test Elements
+
+// Unit Test Elements
     const runAllTestsBtn = document.getElementById('run-all-tests-btn');
     const allTestsResponse = document.getElementById('all-tests-response');
 
@@ -383,6 +417,93 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const data = await apiRequest(`/api/articles/${articleId}`, 'DELETE', null, true);
         displayResponse(articleDeleteResponse, data);
+    });
+
+    // ================
+    // Tag API Demos
+    // ================
+    // GET /api/tags
+    tagsListBtn?.addEventListener('click', async () => {
+        const lang = tagsListLang?.value || 'en';
+        const endpoint = `/api/tags?lang=${encodeURIComponent(lang)}`;
+        const data = await apiRequest(endpoint);
+        displayResponse(tagsListResponse, data);
+    });
+
+    // GET /api/tags/popular
+    tagsPopularBtn?.addEventListener('click', async () => {
+        const lim = parseInt(tagsPopularLimit?.value, 10);
+        const params = new URLSearchParams();
+        if (!Number.isNaN(lim) && lim > 0) params.set('limit', String(lim));
+        const qp = params.toString();
+        const endpoint = `/api/tags/popular${qp ? `?${qp}` : ''}`;
+        const data = await apiRequest(endpoint);
+        displayResponse(tagsPopularResponse, data);
+    });
+
+    // GET /api/tags/:code
+    tagGetBtn?.addEventListener('click', async () => {
+        const code = (tagGetCode?.value || '').trim().toLowerCase();
+        if (!code) {
+            displayResponse(tagGetResponse, { error: 'Tag code is required.' });
+            return;
+        }
+        const data = await apiRequest(`/api/tags/${encodeURIComponent(code)}`);
+        displayResponse(tagGetResponse, data);
+    });
+
+    // GET /api/tags/:id/articles
+    tagArticlesBtn?.addEventListener('click', async () => {
+        const id = (tagArticlesId?.value || '').trim();
+        if (!/^\d+$/.test(id)) {
+            displayResponse(tagArticlesResponse, { error: 'Valid tag ID is required.' });
+            return;
+        }
+        const lang = tagArticlesLang?.value || 'en';
+        const endpoint = `/api/tags/${id}/articles?lang=${encodeURIComponent(lang)}`;
+        const data = await apiRequest(endpoint);
+        displayResponse(tagArticlesResponse, data);
+    });
+
+    // POST /api/tags (auth)
+    tagCreateBtn?.addEventListener('click', async () => {
+        const code = (tagCreateCode?.value || '').trim().toLowerCase();
+        const name_en = (tagCreateNameEn?.value || '').trim();
+        const name_bn = (tagCreateNameBn?.value || '').trim();
+        if (!code || !name_en) {
+            displayResponse(tagCreateResponse, { error: 'code and name_en are required.' });
+            return;
+        }
+        const body = { code, name_en };
+        if (name_bn) body.name_bn = name_bn;
+        const data = await apiRequest('/api/tags', 'POST', body, true);
+        displayResponse(tagCreateResponse, data);
+    });
+
+    // PUT /api/tags/:code (auth)
+    tagUpdateBtn?.addEventListener('click', async () => {
+        const code = (tagUpdateCode?.value || '').trim().toLowerCase();
+        const name_en = (tagUpdateNameEn?.value || '').trim();
+        const name_bn = (tagUpdateNameBn?.value || '').trim();
+        if (!code || !name_en) {
+            displayResponse(tagUpdateResponse, { error: 'code and name_en are required.' });
+            return;
+        }
+        const body = { name_en };
+        if (name_bn) body.name_bn = name_bn;
+        const data = await apiRequest(`/api/tags/${encodeURIComponent(code)}`, 'PUT', body, true);
+        displayResponse(tagUpdateResponse, data);
+    });
+
+    // DELETE /api/tags/:code (auth)
+    tagDeleteBtn?.addEventListener('click', async () => {
+        const code = (tagDeleteCode?.value || '').trim().toLowerCase();
+        if (!code) {
+            displayResponse(tagDeleteResponse, { error: 'code is required.' });
+            return;
+        }
+        const data = await apiRequest(`/api/tags/${encodeURIComponent(code)}`, 'DELETE', null, true);
+        displayResponse(tagDeleteResponse, data);
     });
 
     // Unit Tests

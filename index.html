@@ -203,16 +203,89 @@
                 <button id="article-update-btn">Execute</button>
                 <pre><code id="article-update-response"></code></pre>
             </div>
+<div class="api-demo-section">
+    <h3>DELETE /api/articles/:id</h3>
+    <p>Deletes an article (requires authentication).</p>
+    <input type="text" id="article-delete-id" placeholder="Article ID">
+    <button id="article-delete-btn">Execute</button>
+    <pre><code id="article-delete-response"></code></pre>
+</div>
 
-            <div class="api-demo-section">
-                <h3>DELETE /api/articles/:id</h3>
-                <p>Deletes an article (requires authentication).</p>
-                <input type="text" id="article-delete-id" placeholder="Article ID">
-                <button id="article-delete-btn">Execute</button>
-                <pre><code id="article-delete-response"></code></pre>
-            </div>
+<!-- ===================== -->
+<!-- Tag Management Demos  -->
+<!-- ===================== -->
 
-        </section>
+<div class="api-demo-section">
+    <h3>GET /api/tags</h3>
+    <p>List all tags (optional lang).</p>
+    <label for="tags-list-lang">Language:</label>
+    <select id="tags-list-lang">
+        <option value="en" selected>English</option>
+        <option value="bn">Bengali</option>
+    </select>
+    <button id="tags-list-btn">Execute</button>
+    <pre><code id="tags-list-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>GET /api/tags/popular</h3>
+    <p>Most used tags.</p>
+    <input type="number" id="tags-popular-limit" placeholder="limit (default 10)" min="1" max="100" style="width:200px;">
+    <button id="tags-popular-btn">Execute</button>
+    <pre><code id="tags-popular-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>GET /api/tags/:code</h3>
+    <p>Retrieve a tag by code.</p>
+    <input type="text" id="tag-get-code" placeholder="Tag code (e.g., tech)">
+    <button id="tag-get-btn">Execute</button>
+    <pre><code id="tag-get-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>GET /api/tags/:id/articles</h3>
+    <p>Articles associated with a tag ID.</p>
+    <input type="number" id="tag-articles-id" placeholder="Tag ID" min="1" style="width:160px;">
+    <label for="tag-articles-lang" style="margin-left:8px;">Language:</label>
+    <select id="tag-articles-lang">
+        <option value="en" selected>English</option>
+        <option value="bn">Bengali</option>
+    </select>
+    <button id="tag-articles-btn" style="margin-left:8px;">Execute</button>
+    <pre><code id="tag-articles-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>POST /api/tags</h3>
+    <p>Create a new tag (requires authentication; admin/editor).</p>
+    <input type="text" id="tag-create-code" placeholder="code (lowercase, no spaces)">
+    <input type="text" id="tag-create-name-en" placeholder="name_en">
+    <input type="text" id="tag-create-name-bn" placeholder="name_bn (optional)">
+    <button id="tag-create-btn">Execute</button>
+    <pre><code id="tag-create-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>PUT /api/tags/:code</h3>
+    <p>Update tag names (requires authentication; admin/editor).</p>
+    <input type="text" id="tag-update-code" placeholder="code">
+    <input type="text" id="tag-update-name-en" placeholder="name_en (required)">
+    <input type="text" id="tag-update-name-bn" placeholder="name_bn (optional)">
+    <button id="tag-update-btn">Execute</button>
+    <pre><code id="tag-update-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+    <h3>DELETE /api/tags/:code</h3>
+    <p>Delete a tag (requires authentication; admin/editor).</p>
+    <input type="text" id="tag-delete-code" placeholder="code">
+    <button id="tag-delete-btn">Execute</button>
+    <pre><code id="tag-delete-response"></code></pre>
+</div>
+
+
+</section>
     </main>
 
     <footer>
