@@ -62,6 +62,10 @@
 - `DELETE /api/tags/:id` - Delete tag (admin/editor)
 - `GET /api/tags/:id/articles` - Articles with specific tag
 - `GET /api/tags/popular` - Most used tags
+- `PUT /api/tags/:id` - Update tag (admin/editor)✅
+- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅
+- `GET /api/tags/:id/articles` - Articles with specific tag ✅
+- `GET /api/tags/popular` - Most used tags ✅
 - `GET /api/tags/search` - Search tags by name
 - `GET /api/tags/stats` - Tag statistics
 
