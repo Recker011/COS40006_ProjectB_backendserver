@@ -4,19 +4,17 @@
 
 **Currently available:**
 - `POST /api/auth/login` ✅
-
-**Additions:**
-- `POST /api/auth/register` - User registration with email/password✅
-- `POST /api/auth/logout` - Logout (blacklist token or clear session)✅(Goofy asf because client side token validation, but its fine because this endpoint is needed for the sake of completeness)
-- `GET /api/auth/profile` - Get current user profile ✅
-- `PUT /api/auth/profile` - Update user profile (display_name)✅
-- `PUT /api/auth/password` - Change password ✅
-- `GET /api/users` - List all users (admin only) ✅
-- `GET /api/users/:id` - Get specific user details (admin/editor) ✅
-- `PUT /api/users/:id` - Update user (admin only) ✅
-- `PUT /api/users/:id/activate` - Activate/deactivate user (admin only) ✅
-- `DELETE /api/users/:id` - Soft delete user (admin only) ✅
-- `GET /api/users/stats` - User statistics (total, by role, active) ✅
+- `POST /api/auth/register` ✅
+- `POST /api/auth/logout` ✅
+- `GET /api/auth/profile` ✅
+- `PUT /api/auth/profile` ✅
+- `PUT /api/auth/password` ✅
+- `GET /api/users` ✅
+- `GET /api/users/:id` ✅
+- `PUT /api/users/:id` ✅
+- `PUT /api/users/:id/activate` ✅
+- `DELETE /api/users/:id` ✅
+- `GET /api/users/stats` ✅
 
 ### **2. Enhanced Article Management**
 
@@ -26,6 +24,8 @@
 - `POST /api/articles` ✅
 - `PUT /api/articles/:id` ✅
 - `DELETE /api/articles/:id` ✅
+- `DELETE /api/articles` ✅
+- `POST /api/articles/clear` ✅
 
 **Additions:**
 - `GET /api/articles/drafts` - List draft articles (author/admin/editor)
@@ -54,20 +54,16 @@
 
 ### **4. Tag Management**
 
+**Currently available:**
+- `GET /api/tags` ✅
+- `GET /api/tags/:code` ✅
+- `GET /api/tags/:id/articles` ✅
+- `GET /api/tags/popular` ✅
+- `POST /api/tags` ✅
+- `PUT /api/tags/:code` ✅
+- `DELETE /api/tags/:code` ✅
+
 **Additions:**
-- `GET /api/tags` - List all tags✅
-- `GET /api/tags/:id` - Get specific tag✅
-- `POST /api/tags` - Create new tag (admin/editor)✅
-- `PUT /api/tags/:id` - Update tag (admin/editor)✅
-- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅
-- `GET /api/tags/:id/articles` - Articles with specific tag
-- `GET /api/tags/popular` - Most used tags
-- `PUT /api/tags/:id` - Update tag (admin/editor)✅
-- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅
-- `GET /api/tags/:id/articles` - Articles with specific tag ✅
-- `GET /api/tags/popular` - Most used tags ✅
-- `GET /api/tags/:id/articles` - Articles with specific tag ✅
-- `GET /api/tags/popular` - Most used tags ✅
 - `GET /api/tags/search` - Search tags by name
 - `GET /api/tags/stats` - Tag statistics
 
@@ -86,10 +82,10 @@
 ### **6. Search & Analytics**
 
 **Currently available:**
- - `GET /api/search` - Global search across articles, categories, tags ✅
- - `GET /api/search/suggestions` - Search suggestions/autocomplete✅
- 
- **Additions:**
+- `GET /api/search` - Global search across articles, categories, tags ✅
+- `GET /api/search/suggestions` - Search suggestions/autocomplete ✅
+
+**Additions:**
 - `POST /api/analytics/view` - Track article views
 - `GET /api/analytics/articles/:id` - Article analytics
 - `GET /api/analytics/dashboard` - Overall platform analytics
@@ -136,26 +132,3 @@
 - `GET /api/version` - API version information
 - `POST /api/maintenance/on` - Enable maintenance mode
 - `POST /api/maintenance/off` - Disable maintenance mode
-
-## **Implementation Priority Recommendations**
-
-### **High Priority (Core Functionality):**
-1. User registration and profile management
-2. Category management (CRUD operations)
-3. Tag management (CRUD operations)
-4. Media asset management
-5. Enhanced article status management
-
-### **Medium Priority (Enhanced Features):**
-1. Search and analytics endpoints
-2. Content organization features
-3. System administration tools
-4. Multilingual support enhancements
-
-### **Low Priority (Nice to Have):**
-1. Advanced analytics
-2. Content recommendations
-3. Backup and maintenance utilities
-4. SEO-related endpoints
-
-All these endpoints can be implemented using the existing database schema without any modifications. The schema is well-designed with proper relationships and supports multilingual content, role-based access control, and comprehensive content management.

@@ -369,7 +369,7 @@ Authorization: Bearer <jwt_token>
 - **Query Params**:
   - `search`: (optional) Search term to filter articles
   - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
-  - `tag`: (optional) Tag name to filter articles (e.g., `technology`, `news`).
+  - `tag`: (optional) Tag code to filter articles (e.g., `tech`, `news`).
 - **Response**:
 ```json
 [
@@ -380,7 +380,7 @@ Authorization: Bearer <jwt_token>
     "image_url": "https://example.com/image.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en",
+    
     "tags": ["tech", "news"],
     "tags_names": ["Technology", "News"]
   }
@@ -401,7 +401,7 @@ Authorization: Bearer <jwt_token>
   "image_url": "string|null",
   "created_at": "ISO string",
   "updated_at": "ISO string",
-  "language_code": "string",
+  
   "tags": ["string"],
   "tags_names": ["string"]
 }
@@ -416,7 +416,7 @@ Authorization: Bearer <jwt_token>
   "title": "New Article",
   "content": "Article content...",
   "image_url": "https://example.com/image.jpg",
-  "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
+   // Optional: 'en' or 'bn'. Defaults to 'en'.
   "tags": ["tech", "news"] // Optional: Array of tag slugs
 }
 ```
@@ -431,7 +431,7 @@ Authorization: Bearer <jwt_token>
   "title": "Updated Title",
   "content": "New content...",
   "image_url": "https://example.com/image.jpg",
-  "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
+   // Optional: 'en' or 'bn'. Defaults to 'en'.
   "tags": ["tech", "news"] // Optional: Array of tag slugs
 }
 ```
@@ -567,6 +567,34 @@ Authorization: Bearer <jwt_token>
   - `404 Not Found`: Tag with the specified code does not exist.
   - `500 Internal Server Error`: Server processing error.
 
+#### Get Articles by Tag ID
+- Endpoint: `/api/tags/:id/articles`
+- Method: GET
+- Description: Retrieves all published articles associated with a specific tag ID.
+- Path Parameters:
+  - `id`: integer — the ID of the tag
+- Query Params:
+  - `lang`: (optional) `en` | `bn` — Defaults to `en`. Determines which localized tag names are used.
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "1",
+    "title": "Sample Article",
+    "content": "Article content...",
+    "image_url": "https://example.com/image.jpg",
+    "created_at": "2025-08-20T12:34:56.789Z",
+    "updated_at": "2025-08-20T12:34:56.789Z",
+    "tags": ["tech", "news"],
+    "tags_names": ["Technology", "News"]
+  }
+]
+```
+- Error Responses:
+  - `400 Bad Request`: Invalid tag ID
+  - `404 Not Found`: Tag not found
+  - `500 Internal Server Error`: Server processing error
+
 ### Global Search
 - Endpoint: `/api/search`
 - Method: GET
@@ -650,14 +678,64 @@ Examples:
 - Pagination (limit=5, page=2):
   curl "http://localhost:3000/api/search?q=water&limit=5&page=2"
 
+### Search Suggestions
+- Endpoint: `/api/search/suggestions`
+- Method: GET
+- Description: Returns compact autocomplete suggestions across requested types without heavy payloads. Public endpoint, no authentication.
+
+Query Parameters:
+- q: string (required) — the search term. Max 64 characters.
+- types: CSV subset of `articles,categories,tags` (optional). Default: all three.
+- lang: `en` | `bn` (optional). Default: `en`. Determines which localized fields are used for category and tag names.
+- limit: integer (optional). Overall number of suggestions to return (1..20). Default 10.
+- perTypeLimit: integer (optional). Maximum per type (1..10). Default 5.
+- includeMeta: boolean (optional). Default false. When true, includes meta info such as tookMs and total per-type candidates.
+
+Success Response (200 OK):
+```json
+{
+  "query": "rea",
+  "types": ["articles","categories","tags"],
+  "suggestions": [
+    {
+      "type": "articles",
+      "id": "1",
+      "title": "React State Guide",
+      "slug": "react-state-guide",
+      "highlight": {
+        "title": "<c>Rea</c>ct State Guide",
+        "slug": "<c>rea</c>ct-state-guide"
+      }
+    },
+    {
+      "type": "tags",
+      "id": "10",
+      "code": "react",
+      "name": "React",
+      "highlight": {
+        "name": "<c>Rea</c>ct",
+        "code": "<c>rea</c>ct"
+      }
+    }
+  ]
+}
+```
+
+Notes:
+- Sorting prefers prefix matches for q, then infix matches, then recency.
+- Internally limited per type using perTypeLimit, then trimmed to overall limit.
+
+Examples:
+- All types:
+  curl "http://localhost:3000/api/search/suggestions?q=hea"
+- Tags in Bangla with meta:
+  curl "http://localhost:3000/api/search/suggestions?q=স্বা&amp;types=tags&amp;lang=bn&amp;includeMeta=true"
+- Increase per-type:
+  curl "http://localhost:3000/api/search/suggestions?q=water&amp;perTypeLimit=10"
+
 ### Testing Tag Endpoints
 
-#### Create Tag (No Authentication)
-To test the `POST /api/tags` endpoint without authentication (if the `authenticate` middleware is temporarily removed or for initial setup), use the `test-post-tags-no-auth.ps1` script:
 
-```powershell
-.\test-post-tags-no-auth.ps1
-```
 
 #### Create Tag (With Authentication)
 To test the `POST /api/tags` endpoint with JWT authentication, use the `test-post-tags-with-auth.ps1` script. This script will first generate a JWT token and then use it in the request.
@@ -689,7 +767,7 @@ A successful response will look like:
     "image_url": "https://example.com/emergency.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en",
+    
     "tags": ["tech", "news"],
     "tags_names": ["Technology", "News"]
   }
