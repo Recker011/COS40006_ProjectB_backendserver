@@ -567,6 +567,27 @@ Authorization: Bearer <jwt_token>
   - `404 Not Found`: Tag with the specified code does not exist.
   - `500 Internal Server Error`: Server processing error.
 
+### Category Management
+
+#### List All Categories
+- **Endpoint**: `/api/categories`
+- **Method**: GET
+- **Description**: Retrieves a list of all categories with multilingual support.
+- **Query Params**:
+  - `lang`: (optional) Language code for category names (`en` for English, `bn` for Bengali). Defaults to `en`.
+- **Response**:
+```json
+[
+  {
+    "id": "number",
+    "name_en": "string",
+    "name_bn": "string"
+  }
+]
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error.
+
 ### Testing Tag Endpoints
 
 #### Create Tag (No Authentication)
