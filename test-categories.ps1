@@ -106,4 +106,94 @@ try {
     exit 1
 }
 
+# Get a category ID for testing GET /api/categories/:id
+$testCategoryId = $null
+Write-Host "Attempting to retrieve a category ID for testing..." -ForegroundColor DarkYellow
+try {
+    $allCategories = Invoke-RestMethod -Uri "$baseUrl/categories" -Method Get -Headers $headers -ErrorAction Stop
+    if ($allCategories -is [System.Array] -and $allCategories.Length -gt 0) {
+        $testCategoryId = $allCategories[0].id
+        Write-Host "Successfully retrieved category ID: $testCategoryId" -ForegroundColor Green
+    } else {
+        Write-Host "No categories found to test GET /api/categories/:id. Skipping test." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "Failed to retrieve categories to get an ID. Error: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+if ($testCategoryId) {
+    # Test 3: Get specific category by ID (GET /api/categories/:id)
+    Write-Host "TEST 3: GET /api/categories/$testCategoryId - Retrieve specific category by ID" -ForegroundColor Magenta
+    try {
+        $response = Invoke-RestMethod -Uri "$baseUrl/categories/$testCategoryId" -Method Get -Headers $headers -ErrorAction Stop
+        Write-Result -TestName "Get Specific Category by ID" -StatusCode 200 -Response $response
+        
+        if ($response.id -eq $testCategoryId) {
+            Write-Host "Verification successful: Retrieved category ID matches requested ID." -ForegroundColor Green
+        } else {
+            Write-Host "Verification failed: Retrieved category ID does not match requested ID." -ForegroundColor Red
+        }
+    } catch {
+        $errorResponse = $_.Exception.Response
+        if ($errorResponse) {
+            $statusCode = $errorResponse.StatusCode.Value__
+            $errorMessage = $_.ErrorDetails.Message
+            Write-Result -TestName "Get Specific Category by ID" -StatusCode $statusCode -Response $errorMessage
+            Write-Host "Failed to retrieve specific category. HTTP Status Code: $statusCode. Error: $errorMessage" -ForegroundColor Red
+        } else {
+            Write-Result -TestName "Get Specific Category by ID" -StatusCode 0 -Response $_.Exception.Message
+            Write-Host "Failed to retrieve specific category. No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "Possible causes: Server not running, network issue." -ForegroundColor Red
+        }
+    }
+
+    # Test 4: Get non-existent category by ID (GET /api/categories/:id)
+    $nonExistentId = 99999 # Assuming this ID does not exist
+    Write-Host "TEST 4: GET /api/categories/$nonExistentId - Retrieve non-existent category by ID" -ForegroundColor Magenta
+    try {
+        Invoke-RestMethod -Uri "$baseUrl/categories/$nonExistentId" -Method Get -Headers $headers -ErrorAction Stop
+        Write-Result -TestName "Get Non-Existent Category by ID" -StatusCode 200 -Response "Unexpected success"
+        Write-Host "Verification failed: Expected 404 Not Found, but got 200 OK." -ForegroundColor Red
+    } catch {
+        $errorResponse = $_.Exception.Response
+        if ($errorResponse) {
+            $statusCode = $errorResponse.StatusCode.Value__
+            $errorMessage = $_.ErrorDetails.Message
+            Write-Result -TestName "Get Non-Existent Category by ID" -StatusCode $statusCode -Response $errorMessage
+            if ($statusCode -eq 404) {
+                Write-Host "Verification successful: Received 404 Not Found for non-existent category." -ForegroundColor Green
+            } else {
+                Write-Host "Verification failed: Expected 404 Not Found, but got $statusCode." -ForegroundColor Red
+            }
+        } else {
+            Write-Result -TestName "Get Non-Existent Category by ID" -StatusCode 0 -Response $_.Exception.Message
+            Write-Host "Verification failed: No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+
+    # Test 5: Get category with invalid ID (GET /api/categories/:id)
+    $invalidId = "abc"
+    Write-Host "TEST 5: GET /api/categories/$invalidId - Retrieve category with invalid ID" -ForegroundColor Magenta
+    try {
+        Invoke-RestMethod -Uri "$baseUrl/categories/$invalidId" -Method Get -Headers $headers -ErrorAction Stop
+        Write-Result -TestName "Get Category with Invalid ID" -StatusCode 200 -Response "Unexpected success"
+        Write-Host "Verification failed: Expected 400 Bad Request, but got 200 OK." -ForegroundColor Red
+    } catch {
+        $errorResponse = $_.Exception.Response
+        if ($errorResponse) {
+            $statusCode = $errorResponse.StatusCode.Value__
+            $errorMessage = $_.ErrorDetails.Message
+            Write-Result -TestName "Get Category with Invalid ID" -StatusCode $statusCode -Response $errorMessage
+            if ($statusCode -eq 400) {
+                Write-Host "Verification successful: Received 400 Bad Request for invalid ID." -ForegroundColor Green
+            } else {
+                Write-Host "Verification failed: Expected 400 Bad Request, but got $statusCode." -ForegroundColor Red
+            }
+        } else {
+            Write-Result -TestName "Get Category with Invalid ID" -StatusCode 0 -Response $_.Exception.Message
+            Write-Host "Verification failed: No HTTP response received. Error: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+}
+
 Write-Host "`nCategory API testing completed!" -ForegroundColor Green

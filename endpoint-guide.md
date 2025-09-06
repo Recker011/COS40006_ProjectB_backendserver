@@ -588,6 +588,25 @@ Authorization: Bearer <jwt_token>
 - **Error Responses**:
   - `500 Internal Server Error`: Server processing error.
 
+#### Get Specific Category by ID
+- **Endpoint**: `/api/categories/:id`
+- **Method**: GET
+- **Description**: Retrieves details for a specific category by its ID.
+- **Path Parameters**:
+  - `id`: The ID of the category to retrieve.
+- **Response**:
+```json
+{
+  "id": "number",
+  "name_en": "string",
+  "name_bn": "string"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID.
+  - `404 Not Found`: Category not found.
+  - `500 Internal Server Error`: Server processing error.
+
 ### Testing Tag Endpoints
 
 #### Create Tag (No Authentication)

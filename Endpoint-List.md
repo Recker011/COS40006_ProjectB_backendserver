@@ -45,7 +45,7 @@
 
 **Additions:**
 - `GET /api/categories` - List all categories ✅
-- `GET /api/categories/:id` - Get specific category
+- `GET /api/categories/:id` - Get specific category ✅
 - `POST /api/categories` - Create new category (admin/editor)
 - `PUT /api/categories/:id` - Update category (admin/editor)
 - `DELETE /api/categories/:id` - Delete category (admin/editor)
