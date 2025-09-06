@@ -87,9 +87,9 @@
 
 **Currently available:**
  - `GET /api/search` - Global search across articles, categories, tags ✅
+ - `GET /api/search/suggestions` - Search suggestions/autocomplete✅
  
  **Additions:**
-- `GET /api/search/suggestions` - Search suggestions/autocomplete
 - `POST /api/analytics/view` - Track article views
 - `GET /api/analytics/articles/:id` - Article analytics
 - `GET /api/analytics/dashboard` - Overall platform analytics
