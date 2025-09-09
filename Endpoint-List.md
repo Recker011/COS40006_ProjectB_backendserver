@@ -44,12 +44,12 @@
 ### **3. Category Management**
 
 **Additions:**
-- `GET /api/categories` - List all categories
-- `GET /api/categories/:id` - Get specific category
-- `POST /api/categories` - Create new category (admin/editor)
-- `PUT /api/categories/:id` - Update category (admin/editor)
-- `DELETE /api/categories/:id` - Delete category (admin/editor)
-- `GET /api/categories/:id/articles` - Articles in specific category
+- `GET /api/categories` - List all categories ✅
+- `GET /api/categories/:id` - Get specific category ✅
+- `POST /api/categories` - Create new category (admin/editor) ✅
+- `PUT /api/categories/:id` - Update category (admin/editor) ✅
+- `DELETE /api/categories/:id` - Delete category (admin/editor) ✅
+- `GET /api/categories/:id/articles` - Articles in specific category ✅
 - `GET /api/categories/stats` - Category statistics (article count per category)
 
 ### **4. Tag Management**
@@ -58,8 +58,8 @@
 - `GET /api/tags` - List all tags✅
 - `GET /api/tags/:id` - Get specific tag✅
 - `POST /api/tags` - Create new tag (admin/editor)✅
-- `PUT /api/tags/:id` - Update tag (admin/editor)✅
-- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅
+- `PUT /api/tags/:id` - Update tag (admin/editor)✅✅
+- `DELETE /api/tags/:id` - Delete tag (admin/editor)✅✅
 - `GET /api/tags/:id/articles` - Articles with specific tag
 - `GET /api/tags/popular` - Most used tags
 - `PUT /api/tags/:id` - Update tag (admin/editor)✅

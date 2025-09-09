@@ -49,6 +49,7 @@ const userRoutes = require('./routes/users');
 
 // Import search routes
 const searchRoutes = require('./routes/search');
+const categoryRoutes = require('./routes/categories');
 
 // health endpoint: returns server uptime + DB status
 api.get("/health", async (req, res) => {
@@ -88,9 +89,6 @@ api.use('/tags', tagRoutes);
 
 // Mount user routes
 api.use('/users', userRoutes);
-
-// Mount search routes
-api.use('/', searchRoutes);
 
 // Endpoint to run PowerShell tests
 api.post('/run-tests', (req, res) => {

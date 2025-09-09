@@ -650,6 +650,145 @@ Examples:
 - Pagination (limit=5, page=2):
   curl "http://localhost:3000/api/search?q=water&limit=5&page=2"
 
+### Category Management
+
+#### List All Categories
+- **Endpoint**: `/api/categories`
+- **Method**: GET
+- **Description**: Retrieves a list of all categories with multilingual support.
+- **Query Params**:
+  - `lang`: (optional) Language code for category names (`en` for English, `bn` for Bengali). Defaults to `en`.
+- **Response**:
+```json
+[
+  {
+    "id": "number",
+    "name_en": "string",
+    "name_bn": "string"
+  }
+]
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error.
+
+#### Get Specific Category by ID
+- **Endpoint**: `/api/categories/:id`
+- **Method**: GET
+- **Description**: Retrieves details for a specific category by its ID.
+- **Path Parameters**:
+  - `id`: The ID of the category to retrieve.
+- **Response**:
+```json
+{
+  "id": "number",
+  "name_en": "string",
+  "name_bn": "string"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID.
+  - `404 Not Found`: Category not found.
+  - `500 Internal Server Error`: Server processing error.
+
+#### List Articles in Specific Category
+- **Endpoint**: `/api/categories/:id/articles`
+- **Method**: GET
+- **Description**: Retrieves all published articles belonging to a specific category with multilingual support.
+- **Path Parameters**:
+  - `id`: The ID of the category to retrieve articles from.
+- **Query Params**:
+  - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
+- **Response**:
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "image_url": "string|null",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"]
+  }
+]
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID.
+  - `404 Not Found`: Category not found.
+  - `500 Internal Server Error`: Server processing error.
+#### Create Category (Admin/Editor only)
+- **Endpoint**: `/api/categories`
+- **Method**: POST
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'` or `role: 'editor'`
+- **Request Body**:
+```json
+{
+  "name_en": "string (required)",
+  "name_bn": "string (optional)"
+}
+```
+- **Success Response (201 Created)**:
+```json
+{
+  "id": "number",
+  "name_en": "string",
+  "name_bn": "string"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid or missing `name_en`.
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user role is not 'admin' or 'editor').
+  - `409 Conflict`: Category with this English name already exists.
+  - `500 Internal Server Error`: Server processing error.
+
+#### Update Category (Admin/Editor only)
+- **Endpoint**: `/api/categories/:id`
+- **Method**: PUT
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'` or `role: 'editor'`
+- **Path Parameters**:
+  - `id`: The ID of the category to update.
+- **Request Body**:
+```json
+{
+  "name_en": "string (required)",
+  "name_bn": "string (optional)"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "id": "number",
+  "name_en": "string",
+  "name_bn": "string",
+  "code": "string"
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID or invalid/missing `name_en`.
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user role is not 'admin' or 'editor').
+  - `404 Not Found`: Category with the specified ID does not exist.
+  - `409 Conflict`: Category with this English name already exists.
+  - `500 Internal Server Error`: Server processing error.
+#### Delete Category (Admin/Editor only)
+- **Endpoint**: `/api/categories/:id`
+- **Method**: DELETE
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'` or `role: 'editor'`
+- **Path Parameters**:
+  - `id`: The ID of the category to delete.
+- **Success Response (204 No Content)**:
+  - No response body.
+- **Error Responses**:
+  - `400 Bad Request`: Invalid category ID.
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user role is not 'admin' or 'editor').
+  - `404 Not Found`: Category with the specified ID does not exist.
+  - `500 Internal Server Error`: Server processing error.
 ### Testing Tag Endpoints
 
 #### Create Tag (No Authentication)
