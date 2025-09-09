@@ -567,6 +567,34 @@ Authorization: Bearer <jwt_token>
   - `404 Not Found`: Tag with the specified code does not exist.
   - `500 Internal Server Error`: Server processing error.
 
+#### List Articles by Tag
+- **Endpoint**: `/api/tags/:id/articles`
+- **Method**: GET
+- **Description**: Retrieves all published articles associated with a specific tag with multilingual support.
+- **Path Parameters**:
+  - `id`: The ID of the tag to retrieve articles from.
+- **Query Params**:
+  - `lang`: (optional) Language code for the article content (`en` for English, `bn` for Bengali). Defaults to `en`.
+- **Response**:
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "image_url": "string|null",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"]
+  }
+]
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid tag ID.
+  - `404 Not Found`: Tag not found.
+  - `500 Internal Server Error`: Server processing error.
+
 ### Global Search
 - Endpoint: `/api/search`
 - Method: GET
@@ -649,6 +677,101 @@ Examples:
 
 - Pagination (limit=5, page=2):
   curl "http://localhost:3000/api/search?q=water&limit=5&page=2"
+
+#### Search Suggestions
+- **Endpoint**: `/api/search/suggestions`
+- **Method**: GET
+- **Description**: Provides autocomplete suggestions across articles, categories, and tags based on the query prefix/infix. Optimized for fast, compact responses suitable for UI autocomplete. No authentication required.
+
+**Query Parameters**:
+- `q`: string (required) — Search prefix/infix term (case-insensitive). Min 1, max 64 characters.
+- `types`: CSV subset of `articles,categories,tags` (optional). Default: all three.
+- `lang`: `en` | `bn` (optional). Default: `en`. Determines localized fields for categories/tags and article translations.
+- `limit`: integer (optional) overall suggestions limit. Default 10, min 1, max 20.
+- `perTypeLimit`: integer (optional) suggestions per type before overall limit. Default 5, min 1, max 10.
+- `includeMeta`: boolean (optional). Default false. Includes timing and candidate counts.
+
+**Notes**:
+- Prioritizes prefix matches over infix for better autocomplete relevance.
+- Articles limited to published status.
+- Suggestions are trimmed to `limit` after per-type fetching.
+- Highlight field wraps the first matching substring in `<c>...</c>` for UI emphasis.
+
+**Success Response (200 OK)**:
+```json
+{
+  "query": "health",
+  "types": ["articles", "categories", "tags"],
+  "suggestions": [
+    {
+      "type": "articles",
+      "id": "1",
+      "title": "Health Guide",
+      "slug": "health-guide",
+      "highlight": {
+        "title": "<c>Health</c> Guide",
+        "slug": "<c>health</c>-guide"
+      }
+    },
+    {
+      "type": "categories",
+      "id": "5",
+      "code": "health",
+      "name": "Health",
+      "highlight": {
+        "name": "<c>Health</c>",
+        "code": "<c>health</c>"
+      }
+    },
+    {
+      "type": "tags",
+      "id": "3",
+      "code": "health-tag",
+      "name": "Health Tag",
+      "highlight": {
+        "name": "<c>Health</c> Tag",
+        "code": "<c>health</c>-tag"
+      }
+    }
+  ]
+}
+```
+
+If `includeMeta=true`:
+```json
+{
+  ...,
+  "meta": {
+    "tookMs": 15,
+    "totalCandidates": {
+      "articles": 2,
+      "categories": 1,
+      "tags": 3
+    }
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: `q` is required or too long (>64 chars)
+- `422 Unprocessable Entity`: Invalid `types` value
+- `500 Internal Server Error`: Server processing error
+
+**Examples**:
+- Basic suggestions (all types, English):
+  ```bash
+  curl "http://localhost:3000/api/search/suggestions?q=health"
+  ```
+
+- Articles only, with meta:
+  ```bash
+  curl "http://localhost:3000/api/search/suggestions?q=vacc&types=articles&includeMeta=true"
+  ```
+
+- Tags in Bengali, limited to 3 total:
+  ```bash
+  curl "http://localhost:3000/api/search/suggestions?q=স্বাস্থ্য&types=tags&lang=bn&limit=3"
+  ```
 
 ### Category Management
 
