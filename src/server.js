@@ -90,6 +90,12 @@ api.use('/tags', tagRoutes);
 // Mount user routes
 api.use('/users', userRoutes);
 
+// Mount search routes (search and suggestions)
+api.use('/', searchRoutes);
+
+// Mount category routes
+api.use('/categories', categoryRoutes);
+
 // Endpoint to run PowerShell tests
 api.post('/run-tests', (req, res) => {
   exec('powershell.exe -File run-tests.ps1', (error, stdout, stderr) => {
