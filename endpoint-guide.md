@@ -912,6 +912,23 @@ If `includeMeta=true`:
   - `403 Forbidden`: Insufficient permissions (user role is not 'admin' or 'editor').
   - `404 Not Found`: Category with the specified ID does not exist.
   - `500 Internal Server Error`: Server processing error.
+
+### Testing
+
+#### Run PowerShell Tests
+- **Endpoint**: `/api/run-tests`
+- **Method**: POST
+- **Description**: Executes the `run-tests.ps1` PowerShell script to run integration tests.
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "output": "..."
+}
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: If the script execution fails.
+  
 ### Testing Tag Endpoints
 
 #### Create Tag (No Authentication)
