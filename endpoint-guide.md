@@ -1064,14 +1064,17 @@ Successful deletion returns 204 No Content.
 ```json
 [
   {
-    "id": 1001,
-    "article_id": 1,
-    "user_id": 5,
-    "display_name": "Jane Doe",
-    "body": "Great article!",
-    "created_at": "2025-09-12T10:00:00.000Z",
-    "updated_at": "2025-09-12T10:00:00.000Z",
-    "edited_at": null
+    "id": "string",
+    "article_id": "string",
+    "user_id": "string",
+    "author_display_name": "string",
+    "body": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "edited_at": "ISO string|null",
+    "edited_by_user_id": "string|null",
+    "deleted_at": "ISO string|null",
+    "deleted_by_user_id": "string|null"
   }
 ]
 ```

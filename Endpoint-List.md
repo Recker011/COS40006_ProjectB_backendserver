@@ -138,7 +138,7 @@
 ### **11. Comments**
 
 **Additions:**
-- `GET /api/articles/:id/comments` - List comments for a specific article (public; excludes soft-deleted).
+- `GET /api/articles/:id/comments` - List comments for a specific article (public; excludes soft-deleted). ✅
 - `POST /api/articles/:id/comments` - Create a new comment on an article (authenticated users, including admins).
 - `PUT /api/comments/:id` - Edit a comment (admin only).
 - `DELETE /api/comments/:id` - Delete a comment (admin only; soft delete recommended).
