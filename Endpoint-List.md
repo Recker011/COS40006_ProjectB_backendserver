@@ -135,6 +135,13 @@
 - `POST /api/maintenance/on` - Enable maintenance mode
 - `POST /api/maintenance/off` - Disable maintenance mode
 
+### **11. Comments**
+
+**Additions:**
+- `GET /api/articles/:id/comments` - List comments for a specific article (public; excludes soft-deleted).
+- `POST /api/articles/:id/comments` - Create a new comment on an article (authenticated users, including admins).
+- `PUT /api/comments/:id` - Edit a comment (admin only).
+- `DELETE /api/comments/:id` - Delete a comment (admin only; soft delete recommended).
 ## **Implementation Priority Recommendations**
 
 ### **High Priority (Core Functionality):**
@@ -156,4 +163,4 @@
 3. Backup and maintenance utilities
 4. SEO-related endpoints
 
-All these endpoints can be implemented using the existing database schema without any modifications. The schema is well-designed with proper relationships and supports multilingual content, role-based access control, and comprehensive content management.
+All endpoints except the new Comments endpoints can be implemented using the existing database schema. The Comments endpoints require the new `comments` table described in the database documentation, while the rest of the schema continues to support multilingual content, role-based access control, and comprehensive content management.

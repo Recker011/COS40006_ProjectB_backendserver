@@ -17,13 +17,26 @@ updated_at timestamp
 
 Table: articles
 Columns:
-id int AI PK 
-category_id int 
-author_user_id int 
-status enum('draft','published','hidden') 
-published_at datetime 
-created_at timestamp 
+id int AI PK
+category_id int
+author_user_id int
+status enum('draft','published','hidden')
+published_at datetime
+created_at timestamp
 updated_at timestamp
+
+Table: comments
+Columns:
+id int AI PK
+article_id int
+user_id int
+body text
+created_at timestamp
+updated_at timestamp
+edited_at datetime
+edited_by_user_id int
+deleted_at datetime
+deleted_by_user_id int
 
 Table: categories
 Columns:

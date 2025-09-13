@@ -8,12 +8,16 @@ A minimal, bilingual content model for web/mobile clients. Articles are language
 - `articles` → `users` (author, many→one)
 - `article_translations` → `articles` (many→one)
 - `article_tags` ↔ (`articles`, `tags`) (many↔many)
+- `comments` → `articles` (many→one)
+- `comments` → `users` (author, many→one)
 - `media_assets` (standalone; attach in app logic)
   
-> Suggested FKs:  
-> `articles.category_id → categories.id`, `articles.author_user_id → users.id`,  
-> `article_translations.article_id → articles.id`,  
-> `article_tags.article_id → articles.id`, `article_tags.tag_id → tags.id`,  
+> Suggested FKs:
+> `articles.category_id → categories.id`, `articles.author_user_id → users.id`,
+> `article_translations.article_id → articles.id`,
+> `article_tags.article_id → articles.id`, `article_tags.tag_id → tags.id`,
+> `comments.article_id → articles.id`, `comments.user_id → users.id`,
+> `comments.edited_by_user_id → users.id (NULLABLE)`, `comments.deleted_by_user_id → users.id (NULLABLE)`,
 > `media_assets.uploaded_by → users.id`.
 
 ---
@@ -62,6 +66,19 @@ A minimal, bilingual content model for web/mobile clients. Articles are language
 **Columns**: `type ('image'|'video')`, `url`, `url_hash (char(64))`, `mime_type`, `width`, `height`, `duration_seconds`, `alt_text_en`, `alt_text_bn`, `uploaded_by`, `created_at`.  
 **Notes**: Enforce unique `url` or `url_hash` to deduplicate; `alt_text_*` supports accessibility; `uploaded_by` credits the uploader.
 
+### `comments`
+**Reasoning**: User-authored remarks on articles. Schema enforces flat comments only (no replies) by omitting any `parent_comment_id`.  
+**Key**: `id` (PK)  
+**Columns**: `article_id`, `user_id`, `body (TEXT)`, `created_at`, `updated_at`, `edited_at`, `edited_by_user_id`, `deleted_at`, `deleted_by_user_id`.  
+**Notes**:
+- Authentication required to create comments (app-level).
+- Admins can edit/delete any comment and can also post comments.
+- Soft delete via `deleted_at` and `deleted_by_user_id`; readers should filter `WHERE deleted_at IS NULL`.
+- Suggested FKs:  
+  - `comments.article_id → articles.id (ON DELETE CASCADE)`  
+  - `comments.user_id → users.id (ON DELETE RESTRICT)`  
+  - `comments.edited_by_user_id → users.id (ON DELETE SET NULL)`  
+  - `comments.deleted_by_user_id → users.id (ON DELETE SET NULL)`
 ---
 
 ## Suggested Indexes & Constraints (minimal)
@@ -74,6 +91,9 @@ A minimal, bilingual content model for web/mobile clients. Articles are language
 - FULLTEXT `article_translations(title, excerpt, body)`
 - `articles(status, published_at)` for public lists
 - `article_tags(tag_id, article_id)` for tag→article queries
+- `comments(article_id, created_at)` for fetching comments per article in chronological order
+- `comments(user_id, created_at)` for user activity/history
+- `comments(deleted_at)` to efficiently exclude soft-deleted comments
 
 ---
 
@@ -83,3 +103,4 @@ A minimal, bilingual content model for web/mobile clients. Articles are language
 - **Search**: FULLTEXT on `article_translations`, then join `articles` to filter publish state.
 - **Tag filter**: join `article_tags` → `articles`, then join `article_translations` for titles/slugs.
 - **Media**: fetch from `media_assets` by `url`/`url_hash`; attach to article in application layer or a lightweight link table if ordering is later required.
+- **Comments**: list by `comments.article_id` with `deleted_at IS NULL`, order by `created_at ASC`; join `users` to display `display_name`.

@@ -1054,6 +1054,92 @@ curl -X DELETE http://localhost:3000/api/articles/1 \
 
 Successful deletion returns 204 No Content.
 
+### Comments
+
+#### List Comments for an Article
+- **Endpoint**: `/api/articles/:id/comments`
+- **Method**: GET
+- **Description**: Returns non-deleted comments for a specific article ordered by `created_at ASC`.
+- **Response**:
+```json
+[
+  {
+    "id": 1001,
+    "article_id": 1,
+    "user_id": 5,
+    "display_name": "Jane Doe",
+    "body": "Great article!",
+    "created_at": "2025-09-12T10:00:00.000Z",
+    "updated_at": "2025-09-12T10:00:00.000Z",
+    "edited_at": null
+  }
+]
+```
+
+#### Create Comment on an Article (Authenticated)
+- **Endpoint**: `/api/articles/:id/comments`
+- **Method**: POST
+- **Authentication**: Required (JWT). Any logged-in user (including admins).
+- **Request Body**:
+```json
+{
+  "body": "Your comment text"
+}
+```
+- **Success Response (201 Created)**:
+```json
+{
+  "id": 1002,
+  "article_id": 1,
+  "user_id": 7,
+  "body": "Thank you for the info.",
+  "created_at": "2025-09-13T01:40:00.000Z",
+  "updated_at": "2025-09-13T01:40:00.000Z",
+  "edited_at": null
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing/invalid token
+  - `400 Bad Request`: Missing/empty `body`
+  - `404 Not Found`: Article not found
+
+#### Edit Comment (Admin only)
+- **Endpoint**: `/api/comments/:id`
+- **Method**: PUT
+- **Authentication/Authorization**: Admin only
+- **Request Body**:
+```json
+{
+  "body": "Edited comment text"
+}
+```
+- **Success Response (200 OK)**:
+```json
+{
+  "id": 1002,
+  "article_id": 1,
+  "user_id": 7,
+  "body": "Edited comment text",
+  "created_at": "2025-09-13T01:40:00.000Z",
+  "updated_at": "2025-09-13T01:45:00.000Z",
+  "edited_at": "2025-09-13T01:45:00.000Z",
+  "edited_by_user_id": 1
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing/invalid token
+  - `403 Forbidden`: Not an admin
+  - `404 Not Found`: Comment not found
+
+#### Delete Comment (Admin only)
+- **Endpoint**: `/api/comments/:id`
+- **Method**: DELETE
+- **Authentication/Authorization**: Admin only
+- **Response**: `204 No Content`
+- **Notes**:
+  - Soft delete (set `deleted_at` and `deleted_by_user_id`) is recommended.
+  - Replies to comments are not supported by schema (no nesting).
+
 ## Testing the Endpoints
 
 ### Testing the Health Endpoint
