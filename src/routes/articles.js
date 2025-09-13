@@ -4,7 +4,7 @@
 
 const express = require("express");
 const { query, pool } = require("../../db");
-const { authenticate } = require("../middleware/auth");
+const { authenticate, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -103,6 +103,89 @@ router.get("/", async (req, res) => {
 });
 
 /**
+ * GET /api/articles/drafts
+ * List draft articles. Visibility:
+ * - admin/editor: all drafts
+ * - reader: only drafts authored by the current user
+ * Query params:
+ * - search: optional search term
+ * - lang: optional 'en' or 'bn' (default 'en')
+ * - tag: optional tag code to filter
+ */
+router.get("/drafts", authenticate, async (req, res) => {
+  try {
+    const { search, lang, tag } = req.query;
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'draft'
+    `;
+
+    let params = [languageCode];
+    const conditions = [];
+
+    // Role-based visibility
+    if (req.user.role !== "admin" && req.user.role !== "editor") {
+      // Readers see only their own drafts
+      conditions.push(`a.author_user_id = ?`);
+      params.push(req.user.id);
+    }
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching draft articles:", error);
+    res.status(500).json({ error: "Failed to retrieve draft articles" });
+  }
+});
+
+/**
  * GET /api/articles/:id
  * Retrieve a specific published article by ID with multilingual support
  *
@@ -116,6 +199,79 @@ router.get("/", async (req, res) => {
  *   "updated_at": "ISO string"
  * }
  */
+/**
+ * GET /api/articles/hidden
+ * List hidden articles (admin/editor only)
+ * Query params:
+ * - search: optional search term
+ * - lang: optional 'en' or 'bn' (default 'en')
+ * - tag: optional tag code to filter
+ */
+router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  try {
+    const { search, lang, tag } = req.query;
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'hidden'
+    `;
+
+    let params = [languageCode];
+    const conditions = [];
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching hidden articles:", error);
+    res.status(500).json({ error: "Failed to retrieve hidden articles" });
+  }
+});
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
