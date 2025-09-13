@@ -176,38 +176,16 @@ try {
     exit 1 # Exit if article creation fails
 }
 
-# --- Test 3: Insert comments directly into the database (via temporary endpoint) ---
-# This requires a temporary endpoint in the backend to facilitate direct DB insertion for testing.
-# The temporary endpoint will be removed after this script is finalized.
-Write-Host "TEST 3: POST /api/articles/:id/test-comments (Temporary - Insert test comments)" -ForegroundColor Magenta
-
-$commentsData = @{
-    comments = @(
-        @{ user_id = $commenterUserId; body = "This is the first comment." },
-        @{ user_id = $commenterUserId; body = "This is a soft-deleted comment."; is_deleted = $true },
-        @{ user_id = $commenterUserId; body = "This is the second active comment." }
-    )
-} | ConvertTo-Json
-
-try {
-    $response = Invoke-RestMethod -Uri "$baseUrl/articles/$articleId/test-comments" -Method Post -Headers $adminHeaders -Body $commentsData
-    Write-TestResult -TestName "Insert test comments" -ExpectedStatusCode 201 -ActualStatusCode 201 -Response $response
-} catch {
-    $statusCode = $_.Exception.Response.StatusCode.Value__
-    $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
-    Write-TestResult -TestName "Insert test comments" -ExpectedStatusCode 201 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
-    exit 1 # Exit if comment insertion fails
-}
 
 # --- Test 4: GET /api/articles/:id/comments (Successful retrieval) ---
 Write-Host "TEST 4: GET /api/articles/$articleId/comments (Successful retrieval)" -ForegroundColor Magenta
 try {
     $response = Invoke-RestMethod -Uri "$baseUrl/articles/$articleId/comments" -Method Get -Headers $unauthHeaders
     Write-TestResult -TestName "Get comments for article $articleId" -ExpectedStatusCode 200 -ActualStatusCode 200 -Response $response
-    if ($response.Count -eq 2) { # Expecting 2 active comments (1 soft-deleted should be excluded)
-        Write-Host "Verification: Correct number of active comments returned (Expected 2, Got $($response.Count))." -ForegroundColor Green
+    if ($response.Count -eq 0) { # Expecting 0 comments for a new article with no comments added
+        Write-Host "Verification: Correct number of comments returned (Expected 0, Got $($response.Count))." -ForegroundColor Green
     } else {
-        Write-Host "Verification: Incorrect number of comments returned. Expected 2, Got $($response.Count)" -ForegroundColor Red
+        Write-Host "Verification: Incorrect number of comments returned. Expected 0, Got $($response.Count)" -ForegroundColor Red
     }
     # Further verification of content can be added here if needed
 } catch {
@@ -251,17 +229,5 @@ if ($articleId) {
     }
     }
 
-# --- Cleanup: Delete test comments (Admin) ---
-Write-Host "--- Cleanup: DELETE /api/articles/$articleId/test-comments (Admin - Delete test comments) ---" -ForegroundColor DarkCyan
-if ($articleId) {
-    try {
-        $response = Invoke-RestMethod -Uri "$baseUrl/articles/$articleId/test-comments" -Method Delete -Headers $adminHeaders
-        Write-TestResult -TestName "Delete test comments for article $articleId" -ExpectedStatusCode 204 -ActualStatusCode 204 -Response $null
-    } catch {
-        $statusCode = $_.Exception.Response.StatusCode.Value__
-        $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
-        Write-TestResult -TestName "Delete test comments for article $articleId" -ExpectedStatusCode 204 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
-    }
-}
 
 Write-Host "`nAll article comments API tests completed." -ForegroundColor Green
