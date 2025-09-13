@@ -505,6 +505,246 @@ const tagDeleteResponse = document.getElementById('tag-delete-response');
         const data = await apiRequest(`/api/tags/${encodeURIComponent(code)}`, 'DELETE', null, true);
         displayResponse(tagDeleteResponse, data);
     });
+// ==============================
+// Advanced Article Demos (New)
+// ==============================
+
+// Element references
+const recentDays = document.getElementById('recent-days');
+const recentLang = document.getElementById('recent-lang');
+const recentSearch = document.getElementById('recent-search');
+const recentTag = document.getElementById('recent-tag');
+const recentBtn = document.getElementById('recent-btn');
+const recentResponse = document.getElementById('recent-response');
+
+const byAuthorUserId = document.getElementById('articles-by-author-userId');
+const byAuthorLang = document.getElementById('articles-by-author-lang');
+const byAuthorSearch = document.getElementById('articles-by-author-search');
+const byAuthorTag = document.getElementById('articles-by-author-tag');
+const byAuthorBtn = document.getElementById('articles-by-author-btn');
+const byAuthorResponse = document.getElementById('articles-by-author-response');
+
+const draftsLang = document.getElementById('articles-drafts-lang');
+const draftsSearch = document.getElementById('articles-drafts-search');
+const draftsTag = document.getElementById('articles-drafts-tag');
+const draftsBtn = document.getElementById('articles-drafts-btn');
+const draftsResponse = document.getElementById('articles-drafts-response');
+
+const hiddenLang = document.getElementById('articles-hidden-lang');
+const hiddenSearch = document.getElementById('articles-hidden-search');
+const hiddenTag = document.getElementById('articles-hidden-tag');
+const hiddenBtn = document.getElementById('articles-hidden-btn');
+const hiddenResponse = document.getElementById('articles-hidden-response');
+
+const statusId = document.getElementById('article-status-id');
+const statusValue = document.getElementById('article-status-value');
+const statusBtn = document.getElementById('article-status-btn');
+const statusResponse = document.getElementById('article-status-response');
+
+const duplicateId = document.getElementById('article-duplicate-id');
+const duplicateBtn = document.getElementById('article-duplicate-btn');
+const duplicateResponse = document.getElementById('article-duplicate-response');
+
+const txGetArticleId = document.getElementById('translations-get-article-id');
+const txGetBtn = document.getElementById('translations-get-btn');
+const txGetResponse = document.getElementById('translations-get-response');
+
+const txAddArticleId = document.getElementById('translations-add-article-id');
+const txAddLang = document.getElementById('translations-add-lang');
+const txAddTitle = document.getElementById('translations-add-title');
+const txAddContent = document.getElementById('translations-add-content');
+const txAddExcerpt = document.getElementById('translations-add-excerpt');
+const txAddBtn = document.getElementById('translations-add-btn');
+const txAddResponse = document.getElementById('translations-add-response');
+
+const txUpdateArticleId = document.getElementById('translations-update-article-id');
+const txUpdateLang = document.getElementById('translations-update-lang');
+const txUpdateTitle = document.getElementById('translations-update-title');
+const txUpdateContent = document.getElementById('translations-update-content');
+const txUpdateExcerpt = document.getElementById('translations-update-excerpt');
+const txUpdateBtn = document.getElementById('translations-update-btn');
+const txUpdateResponse = document.getElementById('translations-update-response');
+
+const txDeleteArticleId = document.getElementById('translations-delete-article-id');
+const txDeleteLang = document.getElementById('translations-delete-lang');
+const txDeleteBtn = document.getElementById('translations-delete-btn');
+const txDeleteResponse = document.getElementById('translations-delete-response');
+
+// Event listeners
+
+// GET /api/articles/recent
+recentBtn?.addEventListener('click', async () => {
+  const days = recentDays?.value || '7';
+  const lang = recentLang?.value || 'en';
+  const search = (recentSearch?.value || '').trim();
+  const tag = (recentTag?.value || '').trim();
+  if (days !== '7' && days !== '30') {
+    displayResponse(recentResponse, { error: "Invalid days. Allowed: 7 or 30" });
+    return;
+  }
+  const params = new URLSearchParams();
+  params.set('days', days);
+  params.set('lang', lang);
+  if (search) params.set('search', search);
+  if (tag) params.set('tag', tag);
+  const endpoint = `/api/articles/recent?${params.toString()}`;
+  const data = await apiRequest(endpoint);
+  displayResponse(recentResponse, data);
+});
+
+// GET /api/articles/by-author/:userId
+byAuthorBtn?.addEventListener('click', async () => {
+  const userId = (byAuthorUserId?.value || '').trim();
+  if (!/^\d+$/.test(userId)) {
+    displayResponse(byAuthorResponse, { error: 'Valid userId is required.' });
+    return;
+  }
+  const lang = byAuthorLang?.value || 'en';
+  const search = (byAuthorSearch?.value || '').trim();
+  const tag = (byAuthorTag?.value || '').trim();
+  const params = new URLSearchParams();
+  params.set('lang', lang);
+  if (search) params.set('search', search);
+  if (tag) params.set('tag', tag);
+  const endpoint = `/api/articles/by-author/${userId}?${params.toString()}`;
+  const data = await apiRequest(endpoint);
+  displayResponse(byAuthorResponse, data);
+});
+
+// GET /api/articles/drafts (auth)
+draftsBtn?.addEventListener('click', async () => {
+  const lang = draftsLang?.value || 'en';
+  const search = (draftsSearch?.value || '').trim();
+  const tag = (draftsTag?.value || '').trim();
+  const params = new URLSearchParams();
+  params.set('lang', lang);
+  if (search) params.set('search', search);
+  if (tag) params.set('tag', tag);
+  const endpoint = `/api/articles/drafts?${params.toString()}`;
+  const data = await apiRequest(endpoint, 'GET', null, true);
+  displayResponse(draftsResponse, data);
+});
+
+// GET /api/articles/hidden (auth)
+hiddenBtn?.addEventListener('click', async () => {
+  const lang = hiddenLang?.value || 'en';
+  const search = (hiddenSearch?.value || '').trim();
+  const tag = (hiddenTag?.value || '').trim();
+  const params = new URLSearchParams();
+  params.set('lang', lang);
+  if (search) params.set('search', search);
+  if (tag) params.set('tag', tag);
+  const endpoint = `/api/articles/hidden?${params.toString()}`;
+  const data = await apiRequest(endpoint, 'GET', null, true);
+  displayResponse(hiddenResponse, data);
+});
+
+// PUT /api/articles/:id/status (auth)
+statusBtn?.addEventListener('click', async () => {
+  const id = (statusId?.value || '').trim();
+  const status = statusValue?.value || 'published';
+  if (!/^\d+$/.test(id)) {
+    displayResponse(statusResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  if (!['draft','published','hidden'].includes(status)) {
+    displayResponse(statusResponse, { error: "status must be one of: draft | published | hidden" });
+    return;
+  }
+  const body = { status };
+  const data = await apiRequest(`/api/articles/${id}/status`, 'PUT', body, true);
+  displayResponse(statusResponse, data);
+});
+
+// POST /api/articles/:id/duplicate (auth)
+duplicateBtn?.addEventListener('click', async () => {
+  const id = (duplicateId?.value || '').trim();
+  if (!/^\d+$/.test(id)) {
+    displayResponse(duplicateResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  const data = await apiRequest(`/api/articles/${id}/duplicate`, 'POST', null, true);
+  displayResponse(duplicateResponse, data);
+});
+
+// GET /api/articles/:id/translations
+txGetBtn?.addEventListener('click', async () => {
+  const id = (txGetArticleId?.value || '').trim();
+  if (!/^\d+$/.test(id)) {
+    displayResponse(txGetResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  const data = await apiRequest(`/api/articles/${id}/translations`);
+  displayResponse(txGetResponse, data);
+});
+
+// POST /api/articles/:id/translations (auth)
+txAddBtn?.addEventListener('click', async () => {
+  const id = (txAddArticleId?.value || '').trim();
+  const language_code = txAddLang?.value || 'en';
+  const title = (txAddTitle?.value || '').trim();
+  const content = (txAddContent?.value || '').trim();
+  const excerpt = (txAddExcerpt?.value || '').trim();
+  if (!/^\d+$/.test(id)) {
+    displayResponse(txAddResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  if (!['en','bn'].includes(language_code)) {
+    displayResponse(txAddResponse, { error: "language_code must be 'en' or 'bn'." });
+    return;
+  }
+  if (!title || !content) {
+    displayResponse(txAddResponse, { error: 'title and content are required.' });
+    return;
+  }
+  const body = { language_code, title, content };
+  if (excerpt) body.excerpt = excerpt;
+  const data = await apiRequest(`/api/articles/${id}/translations`, 'POST', body, true);
+  displayResponse(txAddResponse, data);
+});
+
+// PUT /api/articles/:id/translations/:lang (auth)
+txUpdateBtn?.addEventListener('click', async () => {
+  const id = (txUpdateArticleId?.value || '').trim();
+  const lang = txUpdateLang?.value || 'en';
+  const title = (txUpdateTitle?.value || '').trim();
+  const content = (txUpdateContent?.value || '').trim();
+  const excerpt = (txUpdateExcerpt?.value || '').trim();
+  if (!/^\d+$/.test(id)) {
+    displayResponse(txUpdateResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  if (!['en','bn'].includes(lang)) {
+    displayResponse(txUpdateResponse, { error: "lang must be 'en' or 'bn'." });
+    return;
+  }
+  const body = {};
+  if (title) body.title = title;
+  if (content) body.content = content;
+  if (excerpt) body.excerpt = excerpt;
+  if (Object.keys(body).length === 0) {
+    displayResponse(txUpdateResponse, { error: 'Provide at least one of: title, content, excerpt.' });
+    return;
+  }
+  const data = await apiRequest(`/api/articles/${id}/translations/${lang}`, 'PUT', body, true);
+  displayResponse(txUpdateResponse, data);
+});
+
+// DELETE /api/articles/:id/translations/:lang (auth)
+txDeleteBtn?.addEventListener('click', async () => {
+  const id = (txDeleteArticleId?.value || '').trim();
+  const lang = txDeleteLang?.value || 'en';
+  if (!/^\d+$/.test(id)) {
+    displayResponse(txDeleteResponse, { error: 'Valid Article ID is required.' });
+    return;
+  }
+  if (!['en','bn'].includes(lang)) {
+    displayResponse(txDeleteResponse, { error: "lang must be 'en' or 'bn'." });
+    return;
+  }
+  const data = await apiRequest(`/api/articles/${id}/translations/${lang}`, 'DELETE', null, true);
+  displayResponse(txDeleteResponse, data);
+});
 
     // Unit Tests
     runAllTestsBtn.addEventListener('click', async () => {

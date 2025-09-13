@@ -448,6 +448,292 @@ Authorization: Bearer <jwt_token>
 - **Description**: Clear all articles (Admin only)
 - **Response**: 204 No Content
 
+#### List Draft Articles (Authenticated)
+- Endpoint: `/api/articles/drafts`
+- Method: GET
+- Authentication/Authorization: JWT required. 
+  - admin/editor: see all drafts
+  - reader: see only drafts authored by self
+- Query Params:
+  - `search`: optional substring match on title/body
+  - `lang`: `en` | `bn` (default `en`)
+  - `tag`: optional tag code filter
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "image_url": "string|null",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"]
+  }
+]
+```
+- Error Responses:
+  - 401 Unauthorized: Missing/invalid token
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -H "Authorization: Bearer YOUR_JWT" "http://localhost:3000/api/articles/drafts?lang=en&search=guide&tag=alpha"
+```
+
+#### List Hidden Articles (Admin/Editor)
+- Endpoint: `/api/articles/hidden`
+- Method: GET
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Query Params:
+  - `search`: optional substring match on title/body
+  - `lang`: `en` | `bn` (default `en`)
+  - `tag`: optional tag code filter
+- Success Response (200 OK): Same structure as Drafts/Lists
+- Error Responses:
+  - 401 Unauthorized: Missing/invalid token
+  - 403 Forbidden: Insufficient role
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -H "Authorization: Bearer YOUR_JWT" "http://localhost:3000/api/articles/hidden?lang=bn"
+```
+
+#### Change Article Status (Admin/Editor)
+- Endpoint: `/api/articles/:id/status`
+- Method: PUT
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Request Body:
+```json
+{
+  "status": "draft" | "published" | "hidden"
+}
+```
+- Success Response (200 OK):
+```json
+{
+  "ok": true,
+  "id": "string",
+  "status": "published",
+  "published_at": "2025-09-13T03:21:00.000Z",
+  "updated_at": "2025-09-13T03:21:00.000Z"
+}
+```
+Notes:
+- When status = "published", `published_at` is set to now; for other statuses it becomes `null`.
+
+- Error Responses:
+  - 400 Bad Request: Invalid article ID or invalid status
+  - 401 Unauthorized | 403 Forbidden
+  - 404 Not Found: Article not found
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -X PUT "http://localhost:3000/api/articles/123/status" \
+  -H "Authorization: Bearer YOUR_JWT" -H "Content-Type: application/json" \
+  -d '{"status":"hidden"}'
+```
+
+#### Duplicate Article (Admin/Editor)
+- Endpoint: `/api/articles/:id/duplicate`
+- Method: POST
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Description: Duplicates the specified article (container, translations, tags, media). New article is created as `draft` and authored by the current user. Slugs for translations are regenerated uniquely.
+- Success Response (201 Created):
+```json
+{
+  "ok": true,
+  "id": "newArticleId",
+  "status": "draft",
+  "created_at": "ISO string",
+  "updated_at": "ISO string"
+}
+```
+- Error Responses:
+  - 400 Bad Request: Invalid article ID
+  - 401 Unauthorized | 403 Forbidden
+  - 404 Not Found: Source article not found
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -X POST "http://localhost:3000/api/articles/123/duplicate" \
+  -H "Authorization: Bearer YOUR_JWT"
+```
+
+#### Get All Translations for an Article (Published Only)
+- Endpoint: `/api/articles/:id/translations`
+- Method: GET
+- Authentication: Not required
+- Description: Returns translations only when the article is published.
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "string",
+    "language_code": "en",
+    "title": "string",
+    "slug": "string",
+    "excerpt": "string",
+    "body": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string"
+  }
+]
+```
+- Error Responses:
+  - 400 Bad Request: Invalid article ID
+  - 404 Not Found: Article not found or not published
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl "http://localhost:3000/api/articles/123/translations"
+```
+
+#### Add Translation (Admin/Editor)
+- Endpoint: `/api/articles/:id/translations`
+- Method: POST
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Request Body:
+```json
+{
+  "language_code": "en" | "bn",
+  "title": "string (required)",
+  "content": "string (required)",
+  "excerpt": "string (optional)"
+}
+```
+- Success Response (201 Created):
+```json
+{
+  "ok": true,
+  "translation": {
+    "id": "string",
+    "article_id": "string",
+    "language_code": "en",
+    "title": "string",
+    "slug": "string",
+    "excerpt": "string",
+    "body": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string"
+  }
+}
+```
+- Error Responses:
+  - 400 Bad Request: Invalid input or article ID
+  - 401 Unauthorized | 403 Forbidden
+  - 404 Not Found: Article not found
+  - 409 Conflict: Translation for this language already exists
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -X POST "http://localhost:3000/api/articles/123/translations" \
+  -H "Authorization: Bearer YOUR_JWT" -H "Content-Type: application/json" \
+  -d '{"language_code":"bn","title":"শিরোনাম","content":"বিষয়বস্তু"}'
+```
+
+#### Update Translation (Admin/Editor)
+- Endpoint: `/api/articles/:id/translations/:lang`
+- Method: PUT
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Request Body (any subset, at least one required):
+```json
+{
+  "title": "string (optional)",
+  "content": "string (optional)",
+  "excerpt": "string (optional)"
+}
+```
+- Success Response (200 OK):
+```json
+{
+  "ok": true,
+  "article_id": "string",
+  "language_code": "en",
+  "title": "string",
+  "slug": "string",
+  "excerpt": "string",
+  "body": "string",
+  "updated_at": "ISO string"
+}
+```
+Notes:
+- When `title` changes, the `slug` is regenerated uniquely for that language (excluding the current article).
+
+- Error Responses:
+  - 400 Bad Request: Invalid article ID/lang or missing fields
+  - 401 Unauthorized | 403 Forbidden
+  - 404 Not Found: Article/translation not found
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -X PUT "http://localhost:3000/api/articles/123/translations/en" \
+  -H "Authorization: Bearer YOUR_JWT" -H "Content-Type: application/json" \
+  -d '{"title":"Updated Title","content":"Updated body"}'
+```
+
+#### Delete Translation (Admin/Editor)
+- Endpoint: `/api/articles/:id/translations/:lang`
+- Method: DELETE
+- Authentication/Authorization: JWT required, role in {admin, editor}
+- Description: Deletes a specific language translation. Prevents deletion of the last remaining translation of the article.
+- Success Response: 204 No Content
+- Error Responses:
+  - 400 Bad Request: Invalid article ID/lang
+  - 401 Unauthorized | 403 Forbidden
+  - 404 Not Found: Article/translation not found
+  - 409 Conflict: Attempt to delete the last remaining translation
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl -X DELETE "http://localhost:3000/api/articles/123/translations/bn" \
+  -H "Authorization: Bearer YOUR_JWT"
+```
+
+#### Articles by Specific Author
+- Endpoint: `/api/articles/by-author/:userId`
+- Method: GET
+- Authentication: Not required
+- Query Params:
+  - `lang`: `en` | `bn` (default `en`)
+  - `search`: optional substring match on title/body
+  - `tag`: optional tag code filter
+- Success Response (200 OK): Same structure as List/Search Articles
+- Error Responses:
+  - 400 Bad Request: Invalid userId
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl "http://localhost:3000/api/articles/by-author/1?lang=en&search=guide"
+```
+
+#### Recent Articles (last 7/30 days)
+- Endpoint: `/api/articles/recent`
+- Method: GET
+- Authentication: Not required
+- Query Params:
+  - `days`: 7 | 30 (default 7)
+  - `lang`: `en` | `bn` (default `en`)
+  - `search`: optional substring match on title/body
+  - `tag`: optional tag code filter
+- Success Response (200 OK): Same structure as List/Search Articles (ordered by `published_at DESC`)
+- Error Responses:
+  - 400 Bad Request: Invalid `days` value (only 7 or 30 allowed)
+  - 500 Internal Server Error
+
+Example:
+```bash
+curl "http://localhost:3000/api/articles/recent?days=30&lang=bn&tag=alpha"
+```
 ### Tag Management
 
 #### List All Tags

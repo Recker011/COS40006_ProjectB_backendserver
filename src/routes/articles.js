@@ -101,6 +101,176 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve articles" });
   }
 });
+/**
+ * GET /api/articles/recent
+ * List recent published articles within the last N days
+ * - Public endpoint (no auth)
+ * - Supports optional query params:
+ *    - days: 7 | 30 (default 7)
+ *    - lang: 'en' | 'bn' (default 'en')
+ *    - search: optional search term (matches title/body)
+ *    - tag: optional tag code filter
+ */
+router.get("/recent", async (req, res) => {
+  try {
+    const { search, lang, tag } = req.query;
+    let { days } = req.query;
+
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    // Validate days
+    let daysInt = 7; // default
+    if (days !== undefined) {
+      const parsed = parseInt(String(days), 10);
+      if (parsed === 7 || parsed === 30) {
+        daysInt = parsed;
+      } else {
+        return res.status(400).json({ error: "Invalid days. Allowed values: 7 or 30" });
+      }
+    }
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'published'
+        AND a.published_at IS NOT NULL
+        AND a.published_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    `;
+
+    const conditions = [];
+    const params = [languageCode, daysInt];
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.published_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.published_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching recent articles:", error);
+    res.status(500).json({ error: "Failed to retrieve recent articles" });
+  }
+});
+/**
+ * GET /api/articles/by-author/:userId
+ * List published articles by a specific author with multilingual support
+ * - Public endpoint (no auth)
+ * - Supports optional query params:
+ *    - lang: 'en' | 'bn' (default 'en')
+ *    - search: optional search term (matches title/body)
+ *    - tag: optional tag code filter
+ */
+router.get("/by-author/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { search, lang, tag } = req.query;
+
+    if (!userId || !/^\d+$/.test(String(userId))) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'published' AND a.author_user_id = ?
+    `;
+
+    const conditions = [];
+    const params = [languageCode, parseInt(userId, 10)];
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching articles by author:", error);
+    res.status(500).json({ error: "Failed to retrieve articles by author" });
+  }
+});
 
 /**
  * GET /api/articles/drafts
@@ -186,6 +356,60 @@ router.get("/drafts", authenticate, async (req, res) => {
 });
 
 /**
+ * GET /api/articles/:id/translations
+ * Get all translations for a published article
+ * - Public endpoint (no auth), but only returns when article is published
+ * - Returns an array of translations with language_code, title, slug, excerpt, body, created_at, updated_at
+ */
+router.get("/:id/translations", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^\d+$/.test(String(id))) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+    const sql = `
+      SELECT
+        at.id AS translation_id,
+        at.language_code,
+        at.title,
+        at.slug,
+        at.excerpt,
+        at.body,
+        at.created_at,
+        at.updated_at
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id
+      WHERE a.id = ? AND a.status = 'published'
+      ORDER BY at.language_code ASC, at.id ASC
+    `;
+
+    const { rows } = await query(sql, [id]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found or not published" });
+    }
+
+    const translations = rows.map((t) => ({
+      id: String(t.translation_id),
+      language_code: t.language_code,
+      title: t.title || "",
+      slug: t.slug || "",
+      excerpt: t.excerpt || "",
+      body: t.body || "",
+      created_at: toISO(t.created_at),
+      updated_at: toISO(t.updated_at),
+    }));
+
+    res.json(translations);
+  } catch (error) {
+    console.error("Error fetching article translations:", error);
+    res.status(500).json({ error: "Failed to retrieve translations" });
+  }
+});
+/**
  * GET /api/articles/:id
  * Retrieve a specific published article by ID with multilingual support
  *
@@ -270,6 +494,767 @@ router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req,
   } catch (error) {
     console.error("Error fetching hidden articles:", error);
     res.status(500).json({ error: "Failed to retrieve hidden articles" });
+  }
+});
+
+/**
+ * POST /api/articles/:id/translations
+ * Add a new translation for an article
+ * - Authz: admin/editor only
+ * - Validates that the translation for the given language doesn't already exist
+ * - Regenerates a unique slug from title for the given language
+ *
+ * Body:
+ * {
+ *   "language_code": "en" | "bn",
+ *   "title": "string (required)",
+ *   "content": "string (required)",
+ *   "excerpt": "string (optional)"
+ * }
+ */
+router.post("/:id/translations", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id } = req.params;
+  const { language_code, title, content, excerpt } = req.body || {};
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+
+  const allowedLangs = new Set(["en", "bn"]);
+  if (typeof language_code !== "string" || !allowedLangs.has(language_code)) {
+    return res.status(400).json({ error: "Invalid language_code. Allowed: 'en' or 'bn'" });
+  }
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return res.status(400).json({ error: "Title is required" });
+  }
+  if (!content || typeof content !== "string" || content.trim().length === 0) {
+    return res.status(400).json({ error: "Content is required" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock for update
+    const [articleRows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Ensure translation for this language does not already exist
+    const [existingRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? AND language_code = ? FOR UPDATE",
+      [id, language_code]
+    );
+    if (Array.isArray(existingRows) && existingRows.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Translation for this language already exists" });
+    }
+
+    // Generate unique slug for this language
+    const baseSlug = slugify(title);
+    const uniqueSlug = await generateUniqueSlug(connection, baseSlug, language_code);
+
+    // Insert translation
+    const [insertRes] = await connection.execute(
+      "INSERT INTO article_translations (article_id, language_code, title, slug, excerpt, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
+      [id, language_code, title, uniqueSlug, excerpt || "", content]
+    );
+    const translationId = insertRes.insertId;
+
+    // Touch the article's updated_at
+    await connection.execute(
+      "UPDATE articles SET updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    const nowIso = new Date().toISOString();
+    res.status(201).json({
+      ok: true,
+      translation: {
+        id: String(translationId),
+        article_id: String(id),
+        language_code,
+        title,
+        slug: uniqueSlug,
+        excerpt: excerpt || "",
+        body: content,
+        created_at: nowIso,
+        updated_at: nowIso
+      }
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error creating translation:", error);
+    res.status(500).json({ error: "Failed to create translation" });
+  } finally {
+    connection.release();
+  }
+});
+
+/**
+ * PUT /api/articles/:id/translations/:lang
+ * Update specific language translation
+ * - Authz: admin/editor only
+ * - Updates any subset of: title, content, excerpt
+ * - If title changes, slug is regenerated uniquely for that language (excluding current article)
+ *
+ * Body:
+ * {
+ *   "title": "string (optional)",
+ *   "content": "string (optional)",
+ *   "excerpt": "string (optional)"
+ * }
+ */
+router.put("/:id/translations/:lang", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id, lang } = req.params;
+  const { title, content, excerpt } = req.body || {};
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+  const allowedLangs = new Set(["en", "bn"]);
+  if (!allowedLangs.has(lang)) {
+    return res.status(400).json({ error: "Invalid lang. Allowed: 'en' or 'bn'" });
+  }
+  if (
+    (title === undefined || title === null) &&
+    (content === undefined || content === null) &&
+    (excerpt === undefined || excerpt === null)
+  ) {
+    return res.status(400).json({ error: "At least one of title, content, excerpt must be provided" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock for update
+    const [articleRows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Ensure the translation row exists and lock it
+    const [txRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? AND language_code = ? FOR UPDATE",
+      [id, lang]
+    );
+    if (!Array.isArray(txRows) || txRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Translation not found for specified language" });
+    }
+
+    const sets = [];
+    const params = [];
+
+    let newSlug = null;
+    if (typeof title === "string") {
+      sets.push("title = ?");
+      params.push(title);
+      // Regenerate slug based on new title
+      const baseSlug = slugify(title);
+      newSlug = await generateUniqueSlug(connection, baseSlug, lang, parseInt(id, 10));
+      sets.push("slug = ?");
+      params.push(newSlug);
+    }
+
+    if (typeof content === "string") {
+      sets.push("body = ?");
+      params.push(content);
+    }
+
+    if (typeof excerpt === "string") {
+      sets.push("excerpt = ?");
+      params.push(excerpt);
+    }
+
+    sets.push("updated_at = NOW()");
+
+    const updateSql = `UPDATE article_translations SET ${sets.join(", ")} WHERE article_id = ? AND language_code = ?`;
+    params.push(id, lang);
+    await connection.execute(updateSql, params);
+
+    // Touch parent article
+    await connection.execute("UPDATE articles SET updated_at = NOW() WHERE id = ?", [id]);
+
+    await connection.commit();
+
+    res.json({
+      ok: true,
+      article_id: String(id),
+      language_code: lang,
+      ...(typeof title === "string" ? { title } : {}),
+      ...(newSlug ? { slug: newSlug } : {}),
+      ...(typeof excerpt === "string" ? { excerpt } : {}),
+      ...(typeof content === "string" ? { body: content } : {}),
+      updated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error updating translation:", error);
+    res.status(500).json({ error: "Failed to update translation" });
+  } finally {
+    connection.release();
+  }
+});/**
+ * GET /api/articles/hidden
+ * List hidden articles (admin/editor only)
+ * Query params:
+ * - search: optional search term
+ * - lang: optional 'en' or 'bn' (default 'en')
+ * - tag: optional tag code to filter
+ */
+router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  try {
+    const { search, lang, tag } = req.query;
+    const languageCode = (lang === 'bn') ? 'bn' : 'en';
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'hidden'
+    `;
+
+    let params = [languageCode];
+    const conditions = [];
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching hidden articles:", error);
+    res.status(500).json({ error: "Failed to retrieve hidden articles" });
+  }
+});
+
+/**
+ * POST /api/articles/:id/translations
+ * Add a new translation for an article
+ * - Authz: admin/editor only
+ * - Validates that the translation for the given language doesn't already exist
+ * - Regenerates a unique slug from title for the given language
+ *
+ * Body:
+ * {
+ *   "language_code": "en" | "bn",
+ *   "title": "string (required)",
+ *   "content": "string (required)",
+ *   "excerpt": "string (optional)"
+ * }
+ */
+router.post("/:id/translations", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id } = req.params;
+  const { language_code, title, content, excerpt } = req.body || {};
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+
+  const allowedLangs = new Set(["en", "bn"]);
+  if (typeof language_code !== "string" || !allowedLangs.has(language_code)) {
+    return res.status(400).json({ error: "Invalid language_code. Allowed: 'en' or 'bn'" });
+  }
+
+  if (!title || typeof title !== "string" || title.trim().length === 0) {
+    return res.status(400).json({ error: "Title is required" });
+  }
+  if (!content || typeof content !== "string" || content.trim().length === 0) {
+    return res.status(400).json({ error: "Content is required" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock for update
+    const [articleRows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Ensure translation for this language does not already exist
+    const [existingRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? AND language_code = ? FOR UPDATE",
+      [id, language_code]
+    );
+    if (Array.isArray(existingRows) && existingRows.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Translation for this language already exists" });
+    }
+
+    // Generate unique slug for this language
+    const baseSlug = slugify(title);
+    const uniqueSlug = await generateUniqueSlug(connection, baseSlug, language_code);
+
+    // Insert translation
+    const [insertRes] = await connection.execute(
+      "INSERT INTO article_translations (article_id, language_code, title, slug, excerpt, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
+      [id, language_code, title, uniqueSlug, excerpt || "", content]
+    );
+    const translationId = insertRes.insertId;
+
+    // Touch the article's updated_at
+    await connection.execute(
+      "UPDATE articles SET updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    const nowIso = new Date().toISOString();
+    res.status(201).json({
+      ok: true,
+      translation: {
+        id: String(translationId),
+        article_id: String(id),
+        language_code,
+        title,
+        slug: uniqueSlug,
+        excerpt: excerpt || "",
+        body: content,
+        created_at: nowIso,
+        updated_at: nowIso
+      }
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error creating translation:", error);
+    res.status(500).json({ error: "Failed to create translation" });
+  } finally {
+    connection.release();
+  }
+});
+
+/**
+ * PUT /api/articles/:id/translations/:lang
+ * Update specific language translation
+ * - Authz: admin/editor only
+ * - Updates any subset of: title, content, excerpt
+ * - If title changes, slug is regenerated uniquely for that language (excluding current article)
+ *
+ * Body:
+ * {
+ *   "title": "string (optional)",
+ *   "content": "string (optional)",
+ *   "excerpt": "string (optional)"
+ * }
+ */
+router.put("/:id/translations/:lang", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id, lang } = req.params;
+  const { title, content, excerpt } = req.body || {};
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+  const allowedLangs = new Set(["en", "bn"]);
+  if (!allowedLangs.has(lang)) {
+    return res.status(400).json({ error: "Invalid lang. Allowed: 'en' or 'bn'" });
+  }
+  if (
+    (title === undefined || title === null) &&
+    (content === undefined || content === null) &&
+    (excerpt === undefined || excerpt === null)
+  ) {
+    return res.status(400).json({ error: "At least one of title, content, excerpt must be provided" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock for update
+    const [articleRows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Ensure the translation row exists and lock it
+    const [txRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? AND language_code = ? FOR UPDATE",
+      [id, lang]
+    );
+    if (!Array.isArray(txRows) || txRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Translation not found for specified language" });
+    }
+
+    const sets = [];
+    const params = [];
+
+    let newSlug = null;
+    if (typeof title === "string") {
+      sets.push("title = ?");
+      params.push(title);
+      // Regenerate slug based on new title
+      const baseSlug = slugify(title);
+      newSlug = await generateUniqueSlug(connection, baseSlug, lang, parseInt(id, 10));
+      sets.push("slug = ?");
+      params.push(newSlug);
+    }
+
+    if (typeof content === "string") {
+      sets.push("body = ?");
+      params.push(content);
+    }
+
+    if (typeof excerpt === "string") {
+      sets.push("excerpt = ?");
+      params.push(excerpt);
+    }
+
+    sets.push("updated_at = NOW()");
+
+    const updateSql = `UPDATE article_translations SET ${sets.join(", ")} WHERE article_id = ? AND language_code = ?`;
+    params.push(id, lang);
+    await connection.execute(updateSql, params);
+
+    // Touch parent article
+    await connection.execute("UPDATE articles SET updated_at = NOW() WHERE id = ?", [id]);
+
+    await connection.commit();
+
+    res.json({
+      ok: true,
+      article_id: String(id),
+      language_code: lang,
+      ...(typeof title === "string" ? { title } : {}),
+      ...(newSlug ? { slug: newSlug } : {}),
+      ...(typeof excerpt === "string" ? { excerpt } : {}),
+      ...(typeof content === "string" ? { body: content } : {}),
+      updated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error updating translation:", error);
+    res.status(500).json({ error: "Failed to update translation" });
+  } finally {
+    connection.release();
+  }
+});
+/**
+ * DELETE /api/articles/:id/translations/:lang
+ * Delete a specific language translation for an article
+ * - Authz: admin/editor only
+ * - Prevents deleting the last remaining translation for an article
+ *
+ * Response:
+ * - 204 No Content on success
+ * - 400 Invalid input
+ * - 404 Article or translation not found
+ * - 409 If attempting to delete the last remaining translation
+ */
+router.delete("/:id/translations/:lang", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id, lang } = req.params;
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+  const allowedLangs = new Set(["en", "bn"]);
+  if (!allowedLangs.has(lang)) {
+    return res.status(400).json({ error: "Invalid lang. Allowed: 'en' or 'bn'" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock for update
+    const [articleRows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Ensure the specific translation exists and lock it
+    const [txRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? AND language_code = ? FOR UPDATE",
+      [id, lang]
+    );
+    if (!Array.isArray(txRows) || txRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Translation not found for specified language" });
+    }
+
+    // Prevent deleting the last remaining translation
+    const [allTxRows] = await connection.execute(
+      "SELECT id FROM article_translations WHERE article_id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(allTxRows) || allTxRows.length <= 1) {
+      await connection.rollback();
+      return res.status(409).json({ error: "Cannot delete the last remaining translation for this article" });
+    }
+
+    // Delete the translation
+    await connection.execute(
+      "DELETE FROM article_translations WHERE article_id = ? AND language_code = ?",
+      [id, lang]
+    );
+
+    // Touch parent article
+    await connection.execute(
+      "UPDATE articles SET updated_at = NOW() WHERE id = ?",
+      [id]
+    );
+
+    await connection.commit();
+    return res.status(204).send();
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error deleting translation:", error);
+    return res.status(500).json({ error: "Failed to delete translation" });
+  } finally {
+    connection.release();
+  }
+});
+/**
+ * POST /api/articles/:id/duplicate
+ * Duplicate an article (container, translations, tags, media)
+ * - Authz: admin/editor only
+ * - New article is created as draft, authored by the requesting user
+ * - Slugs are regenerated uniquely per language (base: original slug + "-copy")
+ * - Tags and single media asset (if any) are copied
+ *
+ * Response (201 Created):
+ * {
+ *   "ok": true,
+ *   "id": "newArticleId",
+ *   "status": "draft",
+ *   "created_at": "...",
+ *   "updated_at": "..."
+ * }
+ */
+router.post("/:id/duplicate", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1) Load and lock the source article
+    const [articleRows] = await connection.execute(
+      "SELECT id, category_id, author_user_id, status FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(articleRows) || articleRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+    const source = articleRows[0];
+
+    // 2) Create the new article as a draft, author = current user
+    const [insertArticleRes] = await connection.execute(
+      "INSERT INTO articles (category_id, author_user_id, status, published_at, created_at, updated_at) VALUES (?, ?, ?, NULL, NOW(), NOW())",
+      [source.category_id, req.user.id, "draft"]
+    );
+    const newArticleId = insertArticleRes.insertId;
+
+    // 3) Copy translations (generate unique slugs)
+    const [txRows] = await connection.execute(
+      "SELECT language_code, title, slug, body FROM article_translations WHERE article_id = ?",
+      [id]
+    );
+    if (Array.isArray(txRows) && txRows.length > 0) {
+      for (const row of txRows) {
+        const languageCode = row.language_code;
+        const baseSlug = `${row.slug || slugify(row.title || "article")}-copy`.slice(0, 255);
+        const uniqueSlug = await generateUniqueSlug(connection, baseSlug, languageCode);
+
+        await connection.execute(
+          "INSERT INTO article_translations (article_id, language_code, title, slug, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
+          [newArticleId, languageCode, row.title || "", uniqueSlug, row.body || ""]
+        );
+      }
+    } else {
+      // If source had no translations (unlikely), create empty placeholders for both languages for consistency
+      for (const languageCode of ['en', 'bn']) {
+        const uniqueSlug = await generateUniqueSlug(connection, `article-copy-${languageCode}`, languageCode);
+        await connection.execute(
+          "INSERT INTO article_translations (article_id, language_code, title, slug, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
+          [newArticleId, languageCode, "", uniqueSlug, ""]
+        );
+      }
+    }
+
+    // 4) Copy tags
+    const [tagRows] = await connection.execute(
+      "SELECT tag_id FROM article_tags WHERE article_id = ?",
+      [id]
+    );
+    if (Array.isArray(tagRows) && tagRows.length > 0) {
+      for (const tr of tagRows) {
+        await connection.execute(
+          "INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)",
+          [newArticleId, tr.tag_id]
+        );
+      }
+    }
+
+    // 5) Copy media asset (if any) into a new row with id = newArticleId (1:1 mapping pattern)
+    const [mediaRows] = await connection.execute(
+      "SELECT type, url, mime_type FROM media_assets WHERE id = ?",
+      [id]
+    );
+    if (Array.isArray(mediaRows) && mediaRows.length > 0) {
+      const m = mediaRows[0];
+      await connection.execute(
+        "INSERT INTO media_assets (id, type, url, mime_type, created_at) VALUES (?, ?, ?, ?, NOW())",
+        [newArticleId, m.type, m.url, m.mime_type]
+      );
+    }
+
+    await connection.commit();
+
+    const nowIso = new Date().toISOString();
+    res.status(201).json({
+      ok: true,
+      id: String(newArticleId),
+      status: "draft",
+      created_at: nowIso,
+      updated_at: nowIso
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error duplicating article:", error);
+    res.status(500).json({ error: "Failed to duplicate article" });
+  } finally {
+    connection.release();
+  }
+});
+/**
+ * PUT /api/articles/:id/status
+ * Change article status to 'draft' | 'published' | 'hidden'
+ * Authz: admin/editor only
+ * Body:
+ * {
+ *   "status": "draft" | "published" | "hidden"
+ * }
+ */
+router.put("/:id/status", authenticate, requireRole(['admin','editor']), async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!id || !/^\d+$/.test(String(id))) {
+    return res.status(400).json({ error: "Invalid article ID" });
+  }
+
+  const allowedStatuses = new Set(["draft", "published", "hidden"]);
+  if (typeof status !== "string" || !allowedStatuses.has(status)) {
+    return res.status(400).json({ error: "Invalid status. Allowed: draft, published, hidden" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Ensure the article exists and lock it for update
+    const [rows] = await connection.execute(
+      "SELECT id FROM articles WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!Array.isArray(rows) || rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Article not found" });
+    }
+
+    // Set published_at appropriately when changing status
+    if (status === "published") {
+      await connection.execute(
+        "UPDATE articles SET status = ?, published_at = NOW(), updated_at = NOW() WHERE id = ?",
+        [status, id]
+      );
+    } else {
+      await connection.execute(
+        "UPDATE articles SET status = ?, published_at = NULL, updated_at = NOW() WHERE id = ?",
+        [status, id]
+      );
+    }
+
+    await connection.commit();
+
+    res.json({
+      ok: true,
+      id: String(id),
+      status,
+      published_at: status === "published" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    try { await connection.rollback(); } catch {}
+    console.error("Error updating article status:", error);
+    res.status(500).json({ error: "Failed to update article status" });
+  } finally {
+    connection.release();
   }
 });
 router.get("/:id", async (req, res) => {

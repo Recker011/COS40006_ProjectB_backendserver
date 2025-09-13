@@ -211,6 +211,146 @@
     <pre><code id="article-delete-response"></code></pre>
 </div>
 
+<!-- ============================== -->
+<!-- Advanced Article Demos (New)  -->
+<!-- ============================== -->
+
+<div class="api-demo-section">
+  <h3>GET /api/articles/recent</h3>
+  <p>List recent published articles within the last N days (7 or 30). Public endpoint.</p>
+  <label for="recent-days">Days:</label>
+  <select id="recent-days" style="width:120px;">
+    <option value="7" selected>7</option>
+    <option value="30">30</option>
+  </select>
+  <label for="recent-lang" style="margin-left:8px;">Language:</label>
+  <select id="recent-lang">
+    <option value="en" selected>English</option>
+    <option value="bn">Bengali</option>
+  </select>
+  <input type="text" id="recent-search" placeholder="Search (optional)" style="margin-left:8px;">
+  <input type="text" id="recent-tag" placeholder="Tag code (optional)" style="margin-left:8px;">
+  <button id="recent-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="recent-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>GET /api/articles/by-author/:userId</h3>
+  <p>List published articles authored by a specific user. Public endpoint.</p>
+  <input type="number" id="articles-by-author-userId" placeholder="Author userId" min="1" style="width:200px;">
+  <label for="articles-by-author-lang" style="margin-left:8px;">Language:</label>
+  <select id="articles-by-author-lang">
+    <option value="en" selected>English</option>
+    <option value="bn">Bengali</option>
+  </select>
+  <input type="text" id="articles-by-author-search" placeholder="Search (optional)" style="margin-left:8px;">
+  <input type="text" id="articles-by-author-tag" placeholder="Tag code (optional)" style="margin-left:8px;">
+  <button id="articles-by-author-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="articles-by-author-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>GET /api/articles/drafts</h3>
+  <p>List draft articles. Auth required: admin/editor see all; reader sees own drafts.</p>
+  <label for="articles-drafts-lang">Language:</label>
+  <select id="articles-drafts-lang">
+    <option value="en" selected>English</option>
+    <option value="bn">Bengali</option>
+  </select>
+  <input type="text" id="articles-drafts-search" placeholder="Search (optional)" style="margin-left:8px;">
+  <input type="text" id="articles-drafts-tag" placeholder="Tag code (optional)" style="margin-left:8px;">
+  <button id="articles-drafts-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="articles-drafts-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>GET /api/articles/hidden</h3>
+  <p>List hidden articles. Auth required: admin/editor.</p>
+  <label for="articles-hidden-lang">Language:</label>
+  <select id="articles-hidden-lang">
+    <option value="en" selected>English</option>
+    <option value="bn">Bengali</option>
+  </select>
+  <input type="text" id="articles-hidden-search" placeholder="Search (optional)" style="margin-left:8px;">
+  <input type="text" id="articles-hidden-tag" placeholder="Tag code (optional)" style="margin-left:8px;">
+  <button id="articles-hidden-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="articles-hidden-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>PUT /api/articles/:id/status</h3>
+  <p>Change article status to draft | published | hidden. Auth required (admin/editor).</p>
+  <input type="text" id="article-status-id" placeholder="Article ID">
+  <label for="article-status-value" style="margin-left:8px;">Status:</label>
+  <select id="article-status-value">
+    <option value="draft">draft</option>
+    <option value="published" selected>published</option>
+    <option value="hidden">hidden</option>
+  </select>
+  <button id="article-status-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="article-status-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>POST /api/articles/:id/duplicate</h3>
+  <p>Duplicate an article (container, translations, tags, media). Creates a draft under current user. Auth required (admin/editor).</p>
+  <input type="text" id="article-duplicate-id" placeholder="Article ID">
+  <button id="article-duplicate-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="article-duplicate-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>GET /api/articles/:id/translations</h3>
+  <p>List all translations for a published article. Public endpoint.</p>
+  <input type="text" id="translations-get-article-id" placeholder="Article ID">
+  <button id="translations-get-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="translations-get-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>POST /api/articles/:id/translations</h3>
+  <p>Add a translation (auth required, admin/editor).</p>
+  <input type="text" id="translations-add-article-id" placeholder="Article ID">
+  <label for="translations-add-lang" style="margin-left:8px;">Lang:</label>
+  <select id="translations-add-lang">
+    <option value="en" selected>en</option>
+    <option value="bn">bn</option>
+  </select>
+  <input type="text" id="translations-add-title" placeholder="Title" style="margin-top:8px;">
+  <textarea id="translations-add-content" placeholder="Content"></textarea>
+  <input type="text" id="translations-add-excerpt" placeholder="Excerpt (optional)">
+  <button id="translations-add-btn">Execute</button>
+  <pre><code id="translations-add-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>PUT /api/articles/:id/translations/:lang</h3>
+  <p>Update a translation (auth required, admin/editor). Provide any subset of fields.</p>
+  <input type="text" id="translations-update-article-id" placeholder="Article ID">
+  <label for="translations-update-lang" style="margin-left:8px;">Lang:</label>
+  <select id="translations-update-lang">
+    <option value="en" selected>en</option>
+    <option value="bn">bn</option>
+  </select>
+  <input type="text" id="translations-update-title" placeholder="New title (optional)" style="margin-top:8px;">
+  <textarea id="translations-update-content" placeholder="New content (optional)"></textarea>
+  <input type="text" id="translations-update-excerpt" placeholder="New excerpt (optional)">
+  <button id="translations-update-btn">Execute</button>
+  <pre><code id="translations-update-response"></code></pre>
+</div>
+
+<div class="api-demo-section">
+  <h3>DELETE /api/articles/:id/translations/:lang</h3>
+  <p>Delete a translation (auth required, admin/editor). Prevents deleting last remaining translation.</p>
+  <input type="text" id="translations-delete-article-id" placeholder="Article ID">
+  <label for="translations-delete-lang" style="margin-left:8px;">Lang:</label>
+  <select id="translations-delete-lang">
+    <option value="en" selected>en</option>
+    <option value="bn">bn</option>
+  </select>
+  <button id="translations-delete-btn" style="margin-left:8px;">Execute</button>
+  <pre><code id="translations-delete-response"></code></pre>
+</div>
 <!-- ===================== -->
 <!-- Tag Management Demos  -->
 <!-- ===================== -->

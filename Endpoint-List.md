@@ -28,16 +28,16 @@
 - `DELETE /api/articles/:id` ✅
 
 **Additions:**
-- `GET /api/articles/drafts` - List draft articles (author/admin/editor)
-- `GET /api/articles/hidden` - List hidden articles (admin/editor)
-- `PUT /api/articles/:id/status` - Change article status (draft/published/hidden)
-- `POST /api/articles/:id/duplicate` - Duplicate article
-- `GET /api/articles/:id/translations` - Get all translations for an article
-- `POST /api/articles/:id/translations` - Add new translation
-- `PUT /api/articles/:id/translations/:lang` - Update specific language translation
-- `DELETE /api/articles/:id/translations/:lang` - Delete translation
-- `GET /api/articles/by-author/:userId` - Articles by specific author
-- `GET /api/articles/recent` - Recent articles (last 7/30 days)
+- `GET /api/articles/drafts` - List draft articles (author/admin/editor)✅
+- `GET /api/articles/hidden` - List hidden articles (admin/editor)✅
+- `PUT /api/articles/:id/status` - Change article status (draft/published/hidden)✅
+- `POST /api/articles/:id/duplicate` - Duplicate article✅
+- `GET /api/articles/:id/translations` - Get all translations for an article✅
+- `POST /api/articles/:id/translations` - Add new translation ✅
+- `PUT /api/articles/:id/translations/:lang` - Update specific language translation✅
+- `DELETE /api/articles/:id/translations/:lang` - Delete translation✅
+- `GET /api/articles/by-author/:userId` - Articles by specific author✅
+- `GET /api/articles/recent` - Recent articles (last 7/30 days)✅
 
 ### **3. Category Management**
 
