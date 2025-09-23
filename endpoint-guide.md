@@ -1107,7 +1107,7 @@ Successful deletion returns 204 No Content.
   - `404 Not Found`: Article not found
 
 #### Edit Comment (Admin only)
-- **Endpoint**: `/api/comments/:id`
+- **Endpoint**: `/api/articles/comments/:id`
 - **Method**: PUT
 - **Authentication/Authorization**: Admin only
 - **Request Body**:
@@ -1135,7 +1135,7 @@ Successful deletion returns 204 No Content.
   - `404 Not Found`: Comment not found
 
 #### Delete Comment (Admin only)
-- **Endpoint**: `/api/comments/:id`
+- **Endpoint**: `/api/articles/comments/:id`
 - **Method**: DELETE
 - **Authentication/Authorization**: Admin only
 - **Response**: `204 No Content`
