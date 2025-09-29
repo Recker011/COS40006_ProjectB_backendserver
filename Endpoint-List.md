@@ -22,7 +22,9 @@
 
 **Currently available:**
 - `GET /api/articles` ✅
+- `GET /api/articles/:lang` ✅
 - `GET /api/articles/:id` ✅
+- `GET /api/articles/:id/:lang` ✅
 - `POST /api/articles` ✅
 - `PUT /api/articles/:id` ✅
 - `DELETE /api/articles/:id` ✅

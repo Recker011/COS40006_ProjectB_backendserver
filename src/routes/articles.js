@@ -1257,6 +1257,159 @@ router.put("/:id/status", authenticate, requireRole(['admin','editor']), async (
     connection.release();
   }
 });
+/**
+ * GET /api/articles/:id/:lang
+ * Retrieve a specific published article by ID for a specific language (path param)
+ *
+ * Response:
+ * {
+ *   "id": "string",
+ *   "title": "string",
+ *   "content": "string",
+ *   "image_url": "string|null",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "tags": ["code1","code2"],
+ *   "tags_names": ["Name EN/BN", ...]
+ * }
+ */
+router.get("/:id/:lang", async (req, res) => {
+  try {
+    const { id, lang } = req.params;
+
+    if (!id || !/^\d+$/.test(String(id))) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+    const allowedLangs = new Set(["en", "bn"]);
+    if (!allowedLangs.has(lang)) {
+      return res.status(400).json({ error: "Invalid language. Allowed: 'en' or 'bn'" });
+    }
+
+    const sql = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.id = ? AND a.status = 'published'
+      GROUP BY a.id, at.title, at.body, ma.url, a.created_at, a.updated_at
+    `;
+
+    const { rows } = await query(sql, [lang, id]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Article not found in the requested language" });
+    }
+
+    const article = rows[0];
+    res.json({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(",") : [],
+      tags_names: article.tags_names ? article.tags_names.split(",") : [],
+    });
+  } catch (error) {
+    console.error("Error fetching article by id and lang:", error);
+    res.status(500).json({ error: "Failed to retrieve article" });
+  }
+});
+
+/**
+ * GET /api/articles/:lang
+ * List published articles for a specific language (path param)
+ * Optional query: ?search=term&amp;tag=code
+ *
+ * Response: same shape as GET /api/articles (array)
+ */
+router.get("/:lang", async (req, res, next) => {
+  try {
+    const { lang } = req.params;
+    const { search, tag } = req.query;
+
+    // Only allow valid language codes; otherwise pass to next route (e.g., numeric :id handler)
+    const allowedLangs = new Set(["en", "bn"]);
+    if (!allowedLangs.has(lang)) {
+      return next();
+    }
+
+    const baseSelect = `
+      SELECT
+        a.id,
+        at.title,
+        at.body AS content,
+        ma.url AS image_url,
+        a.created_at,
+        a.updated_at,
+        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+      FROM articles a
+      INNER JOIN article_translations at
+        ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma
+        ON a.id = ma.id
+      LEFT JOIN article_tags artag
+        ON a.id = artag.article_id
+      LEFT JOIN tags t
+        ON artag.tag_id = t.id
+      WHERE a.status = 'published'
+    `;
+
+    const conditions = [];
+    const params = [lang];
+
+    if (search && typeof search === "string" && search.trim().length > 0) {
+      const like = `%${search.trim()}%`;
+      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
+      params.push(like, like);
+    }
+
+    if (tag && typeof tag === "string" && tag.trim().length > 0) {
+      conditions.push(`t.code = ?`);
+      params.push(tag.trim());
+    }
+
+    const sql =
+      conditions.length > 0
+        ? `${baseSelect} AND ${conditions.join(" AND ")} GROUP BY a.id ORDER BY a.created_at DESC`
+        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
+
+    const { rows } = await query(sql, params);
+
+    const articles = rows.map((article) => ({
+      id: String(article.id),
+      title: article.title,
+      content: article.content,
+      image_url: article.image_url || null,
+      created_at: toISO(article.created_at),
+      updated_at: toISO(article.updated_at),
+      tags: article.tags_codes ? article.tags_codes.split(",") : [],
+      tags_names: article.tags_names ? article.tags_names.split(",") : [],
+    }));
+
+    res.json(articles);
+  } catch (error) {
+    console.error("Error fetching articles by language:", error);
+    res.status(500).json({ error: "Failed to retrieve articles" });
+  }
+});
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;

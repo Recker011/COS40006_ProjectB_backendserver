@@ -387,6 +387,35 @@ Authorization: Bearer <jwt_token>
 ]
 ```
 
+#### Path-based language endpoints (added)
+Two convenience endpoints were added so the language can be supplied as a path segment instead of a query parameter:
+
+- **List articles in a specific language**
+  - **Endpoint**: `/api/articles/:lang`
+  - **Method**: GET
+  - **Path Parameters**:
+    - `lang`: `en` | `bn` (required). If the path segment is not a supported language the request falls through to other routes (e.g. numeric IDs).
+  - **Query Params**:
+    - `search`: optional substring match on title/body
+    - `tag`: optional tag code filter
+  - **Description**: Same behaviour as `/api/articles?lang=...` but accepts the language as a path segment. Useful for human-readable URLs or client libraries that prefer path parameters.
+  - **Example**:
+  ```bash
+  curl "http://localhost:3000/api/articles/en?search=guide&tag=alpha"
+  ```
+
+- **Get a single article in a specific language**
+  - **Endpoint**: `/api/articles/:id/:lang`
+  - **Method**: GET
+  - **Path Parameters**:
+    - `id`: numeric article ID
+    - `lang`: `en` | `bn` (required)
+  - **Description**: Returns the published article translation for the given language (same as `/api/articles/:id?lang=...`). Validates that `id` is numeric and `lang` is one of the supported language codes.
+  - **Example**:
+  ```bash
+  curl "http://localhost:3000/api/articles/123/en"
+  ```
+
 #### Get Single Article
 - **Endpoint**: `/api/articles/:id`
 - **Method**: GET
