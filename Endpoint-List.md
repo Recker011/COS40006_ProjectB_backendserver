@@ -40,6 +40,7 @@
 - `DELETE /api/articles/:id/translations/:lang` - Delete translation✅
 - `GET /api/articles/by-author/:userId` - Articles by specific author✅
 - `GET /api/articles/recent` - Recent articles (last 7/30 days)✅
+- `GET /api/articles/tags/lang/:langCode` - Articles grouped by tag for a specific language✅
 
 ### **3. Category Management**
 

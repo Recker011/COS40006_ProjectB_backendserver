@@ -763,6 +763,48 @@ Example:
 ```bash
 curl "http://localhost:3000/api/articles/recent?days=30&lang=bn&tag=alpha"
 ```
+
+#### List Articles Grouped by Tag
+- **Endpoint**: `/api/articles/tags/lang/:langCode`
+- **Method**: GET
+- **Description**: Lists articles grouped by tag for a specific language. The response is a dictionary where keys are tag names and values are arrays of articles.
+- **Path Parameters**:
+  - `langCode`: `en` | `bn` (required)
+- **Query Params**:
+  - `search`: (optional) Substring match on article title/excerpt.
+  - `tag`: (optional) Filter results to a single tag code.
+- **Success Response (200 OK)**:
+```json
+{
+  "Tech News": [
+    {
+      "id": "123",
+      "title": "Latest in Tech",
+      "slug": "latest-in-tech",
+      "excerpt": "A summary of the latest tech news...",
+      "image_url": null,
+      "published_at": "2025-10-03T10:00:00.000Z"
+    }
+  ],
+  "General": [
+    {
+      "id": "124",
+      "title": "General Updates",
+      "slug": "general-updates",
+      "excerpt": "A summary of general updates...",
+      "image_url": "https://example.com/image.jpg",
+      "published_at": "2025-10-02T10:00:00.000Z"
+    }
+  ]
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Invalid language code.
+  - `500 Internal Server Error`: Server processing error.
+- **Example**:
+```bash
+curl "http://localhost:3000/api/articles/tags/lang/en?search=updates"
+```
 ### Tag Management
 
 #### List All Tags

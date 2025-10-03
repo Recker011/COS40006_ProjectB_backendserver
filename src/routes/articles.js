@@ -356,6 +356,87 @@ router.get("/drafts", authenticate, async (req, res) => {
 });
 
 /**
+ * GET /api/articles/tags/lang/:langCode
+ * Lists articles grouped by tag for a specific language.
+ * - Public endpoint.
+ * - Filters by published articles.
+ * - Response is a dictionary where keys are tag names and values are article arrays.
+ */
+router.get("/tags/lang/:langCode", async (req, res) => {
+  try {
+    const { langCode } = req.params;
+    const { search, tag: tagFilter } = req.query;
+
+    const allowedLangs = new Set(["en", "bn"]);
+    if (!allowedLangs.has(langCode)) {
+      return res.status(400).json({ error: "Invalid language code. Allowed: 'en', 'bn'." });
+    }
+
+    const tagNameColumn = langCode === 'bn' ? 't.name_bn' : 't.name_en';
+
+    let sql = `
+      SELECT
+        t.code AS tag_code,
+        ${tagNameColumn} AS tag_name,
+        a.id AS article_id,
+        at.title,
+        at.slug,
+        at.excerpt,
+        ma.url AS image_url,
+        a.published_at
+      FROM tags t
+      INNER JOIN article_tags atr ON t.id = atr.tag_id
+      INNER JOIN articles a ON atr.article_id = a.id
+      INNER JOIN article_translations at ON a.id = at.article_id AND at.language_code = ?
+      LEFT JOIN media_assets ma ON a.id = ma.id
+      WHERE a.status = 'published'
+    `;
+
+    const params = [langCode];
+    const conditions = [];
+
+    if (search) {
+      conditions.push("(at.title LIKE ? OR at.excerpt LIKE ?)");
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    
+    if (tagFilter) {
+      conditions.push("t.code = ?");
+      params.push(tagFilter);
+    }
+
+    if (conditions.length > 0) {
+      sql += " AND " + conditions.join(" AND ");
+    }
+    
+    sql += " ORDER BY t.code, a.published_at DESC";
+
+    const { rows } = await query(sql, params);
+
+    const groupedByTag = rows.reduce((acc, row) => {
+      const { tag_code, tag_name, ...articleData } = row;
+      if (!acc[tag_name]) {
+        acc[tag_name] = [];
+      }
+      acc[tag_name].push({
+        id: String(articleData.article_id),
+        title: articleData.title,
+        slug: articleData.slug,
+        excerpt: articleData.excerpt,
+        image_url: articleData.image_url || null,
+        published_at: toISO(articleData.published_at)
+      });
+      return acc;
+    }, {});
+
+    res.json(groupedByTag);
+  } catch (error) {
+    console.error("Error fetching articles grouped by tag:", error);
+    res.status(500).json({ error: "Failed to retrieve articles." });
+  }
+});
+
+/**
  * GET /api/articles/:id/translations
  * Get all translations for a published article
  * - Public endpoint (no auth), but only returns when article is published
