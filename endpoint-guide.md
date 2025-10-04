@@ -1421,14 +1421,17 @@ Successful deletion returns 204 No Content.
 ```json
 [
   {
-    "id": 1001,
-    "article_id": 1,
-    "user_id": 5,
-    "display_name": "Jane Doe",
-    "body": "Great article!",
-    "created_at": "2025-09-12T10:00:00.000Z",
-    "updated_at": "2025-09-12T10:00:00.000Z",
-    "edited_at": null
+    "id": "string",
+    "article_id": "string",
+    "user_id": "string",
+    "author_display_name": "string",
+    "body": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "edited_at": "ISO string|null",
+    "edited_by_user_id": "string|null",
+    "deleted_at": "ISO string|null",
+    "deleted_by_user_id": "string|null"
   }
 ]
 ```
@@ -1461,9 +1464,17 @@ Successful deletion returns 204 No Content.
   - `404 Not Found`: Article not found
 
 #### Edit Comment (Admin only)
-- **Endpoint**: `/api/comments/:id`
+- **Endpoint**: `/api/articles/comments/:id`
 - **Method**: PUT
-- **Authentication/Authorization**: Admin only
+- **Description**: Allows an admin user to edit an existing comment on any article. This updates the comment body and sets the edited_at timestamp and edited_by_user_id fields.
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'`
+- **Request Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+- **Path Parameters**:
+  - `id`: The ID of the comment to edit.
 - **Request Body**:
 ```json
 {
@@ -1473,23 +1484,26 @@ Successful deletion returns 204 No Content.
 - **Success Response (200 OK)**:
 ```json
 {
-  "id": 1002,
-  "article_id": 1,
-  "user_id": 7,
-  "body": "Edited comment text",
-  "created_at": "2025-09-13T01:40:00.000Z",
-  "updated_at": "2025-09-13T01:45:00.000Z",
-  "edited_at": "2025-09-13T01:45:00.000Z",
-  "edited_by_user_id": 1
+  "id": "string",
+  "article_id": "string",
+  "user_id": "string",
+  "author_display_name": "string",
+  "body": "string",
+  "created_at": "ISO string",
+  "updated_at": "ISO string",
+  "edited_at": "ISO string",
+  "edited_by_user_id": "string"
 }
 ```
 - **Error Responses**:
+  - `400 Bad Request`: Missing/empty `body`
   - `401 Unauthorized`: Missing/invalid token
   - `403 Forbidden`: Not an admin
-  - `404 Not Found`: Comment not found
+  - `404 Not Found`: Comment not found or deleted
+  - `500 Internal Server Error`: Server processing error
 
 #### Delete Comment (Admin only)
-- **Endpoint**: `/api/comments/:id`
+- **Endpoint**: `/api/articles/comments/:id`
 - **Method**: DELETE
 - **Authentication/Authorization**: Admin only
 - **Response**: `204 No Content`

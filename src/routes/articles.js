@@ -1550,6 +1550,397 @@ router.get("/:id", async (req, res) => {
 });
 
 /**
+ * GET /api/articles/:id/comments
+ * List comments for a specific article (public; excludes soft-deleted)
+ *
+ * Response:
+ * [{
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "edited_at": "ISO string|null",
+ *   "edited_by_user_id": "string|null",
+ *   "deleted_at": "ISO string|null",
+ *   "deleted_by_user_id": "string|null"
+ * }]
+ */
+router.get("/:id/comments", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+    // Verify the article exists and is published
+    const { rows: articleRows } = await query(
+      "SELECT id FROM articles WHERE id = ? AND status = 'published'",
+      [id]
+    );
+
+    if (!articleRows || articleRows.length === 0) {
+      return res.status(404).json({ error: "Article not found or not published" });
+    }
+
+    // @ts-ignore
+    const sql = `
+      SELECT
+        c.id,
+        c.article_id,
+        c.user_id,
+        u.\`display_name\` AS author_display_name,
+        c.body,
+        c.created_at,
+        c.updated_at,
+        c.edited_at,
+        c.edited_by_user_id,
+        c.deleted_at,
+        c.deleted_by_user_id
+      FROM comments c
+      INNER JOIN users u
+        ON c.user_id = u.id
+      WHERE c.article_id = ? AND c.deleted_at IS NULL
+      ORDER BY c.created_at ASC
+    `;
+
+    const { rows } = await query(sql, [id]);
+
+    const comments = rows.map((comment) => ({
+      id: String(comment.id),
+      article_id: String(comment.article_id),
+      user_id: String(comment.user_id),
+      author_display_name: comment.author_display_name,
+      body: comment.body,
+      created_at: toISO(comment.created_at),
+      updated_at: toISO(comment.updated_at),
+      edited_at: toISO(comment.edited_at),
+      edited_by_user_id: comment.edited_by_user_id ? String(comment.edited_by_user_id) : null,
+      deleted_at: toISO(comment.deleted_at),
+      deleted_by_user_id: comment.deleted_by_user_id ? String(comment.deleted_by_user_id) : null,
+    }));
+
+    res.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments for article:", error);
+    res.status(500).json({ error: "Failed to retrieve comments" });
+  }
+});
+
+
+
+/**
+ * GET /api/articles/:id/comments
+ * List comments for a specific article (public; excludes soft-deleted)
+ *
+ * Response:
+ * [{
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "edited_at": "ISO string|null",
+ *   "edited_by_user_id": "string|null",
+ *   "deleted_at": "ISO string|null",
+ *   "deleted_by_user_id": "string|null"
+ * }]
+ */
+router.get("/:id/comments", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+    // Verify the article exists and is published
+    const [articleRows] = await query(
+      "SELECT id FROM articles WHERE id = ? AND status = 'published'",
+      [id]
+    );
+
+    if (!articleRows || articleRows.length === 0) {
+      return res.status(404).json({ error: "Article not found or not published" });
+    }
+
+    const sql = `
+      SELECT
+        c.id,
+        c.article_id,
+        c.user_id,
+        u.display_name AS author_display_name,
+        c.body,
+        c.created_at,
+        c.updated_at,
+        c.edited_at,
+        c.edited_by_user_id,
+        c.deleted_at,
+        c.deleted_by_user_id
+      FROM comments c
+      INNER JOIN users u
+        ON c.user_id = u.id
+      WHERE c.article_id = ? AND c.deleted_at IS NULL
+      ORDER BY c.created_at ASC
+    `;
+
+    const { rows } = await query(sql, [id]);
+
+    const comments = rows.map((comment) => ({
+      id: String(comment.id),
+      article_id: String(comment.article_id),
+      user_id: String(comment.user_id),
+      author_display_name: comment.author_display_name,
+      body: comment.body,
+      created_at: toISO(comment.created_at),
+      updated_at: toISO(comment.updated_at),
+      edited_at: toISO(comment.edited_at),
+      edited_by_user_id: comment.edited_by_user_id ? String(comment.edited_by_user_id) : null,
+      deleted_at: toISO(comment.deleted_at),
+      deleted_by_user_id: comment.deleted_by_user_id ? String(comment.deleted_by_user_id) : null,
+    }));
+
+    res.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments for article:", error);
+    res.status(500).json({ error: "Failed to retrieve comments" });
+  }
+});
+
+/**
+ * POST /api/articles/:id/comments
+ * Create a new comment on an article (authenticated users, including admins)
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Request body:
+ * {
+ *   "body": "Comment content"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string"
+ * }
+ */
+router.post("/:id/comments", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { body } = req.body;
+    const userId = req.user.id;
+
+    // Validate article ID
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+    // Validate comment body
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+      return res.status(400).json({ error: "Comment body is required and cannot be empty" });
+    }
+
+    // Verify the article exists and is published
+    const { rows: articleRows } = await query(
+      "SELECT id FROM articles WHERE id = ? AND status = 'published'",
+      [id]
+    );
+
+    if (!articleRows || articleRows.length === 0) {
+      return res.status(404).json({ error: "Article not found or not published" });
+    }
+
+    // Insert comment into database
+    const { rows: insertResult } = await query(
+      "INSERT INTO comments (article_id, user_id, body, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+      [id, userId, body.trim()]
+    );
+
+    // Get the inserted comment with author display name
+    const { rows: commentRows } = await query(
+      `SELECT
+        c.id,
+        c.article_id,
+        c.user_id,
+        u.display_name AS author_display_name,
+        c.body,
+        c.created_at,
+        c.updated_at,
+        c.edited_at,
+        c.edited_by_user_id,
+        c.deleted_at,
+        c.deleted_by_user_id
+      FROM comments c
+      INNER JOIN users u ON c.user_id = u.id
+      WHERE c.id = ?`,
+      [insertResult.insertId]
+    );
+
+    if (!commentRows || commentRows.length === 0) {
+      return res.status(500).json({ error: "Failed to retrieve created comment" });
+    }
+
+    const comment = commentRows[0];
+    res.status(201).json({
+      id: String(comment.id),
+      article_id: String(comment.article_id),
+      user_id: String(comment.user_id),
+      author_display_name: comment.author_display_name,
+      body: comment.body,
+      created_at: toISO(comment.created_at),
+      updated_at: toISO(comment.updated_at),
+      edited_at: toISO(comment.edited_at),
+      edited_by_user_id: comment.edited_by_user_id ? String(comment.edited_by_user_id) : null,
+      deleted_at: toISO(comment.deleted_at),
+      deleted_by_user_id: comment.deleted_by_user_id ? String(comment.deleted_by_user_id) : null,
+    });
+  } catch (error) {
+    console.error("Error creating comment:", error);
+    res.status(500).json({ error: "Failed to create comment" });
+  }
+});
+
+/**
+ * DELETE /api/comments/:id
+ * Delete a comment (admin only; soft delete recommended)
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Response (success):
+ * 204 No Content
+ */
+router.delete("/comments/:id", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Validate comment ID
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid comment ID" });
+    }
+
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Insufficient permissions. Admin only." });
+    }
+
+    // Verify the comment exists and is not already deleted
+    const { rows: commentRows } = await query(
+      "SELECT id FROM comments WHERE id = ? AND deleted_at IS NULL",
+      [id]
+    );
+
+    if (!commentRows || commentRows.length === 0) {
+      return res.status(404).json({ error: "Comment not found or already deleted" });
+    }
+
+    // Perform soft delete by setting deleted_at and deleted_by_user_id
+    await query(
+      "UPDATE comments SET deleted_at = NOW(), deleted_by_user_id = ? WHERE id = ?",
+      [userId, id]
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    res.status(500).json({ error: "Failed to delete comment" });
+  }
+});
+
+/**
+ * PUT /api/articles/comments/:id
+ * Edit a comment (admin only)
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Request body:
+ * {
+ *   "body": "Edited comment content"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "edited_at": "ISO string",
+ *   "edited_by_user_id": "string"
+ * }
+ */
+router.put("/comments/:id", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { body } = req.body;
+    const userId = req.user.id;
+
+    // Validate comment ID
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid comment ID" });
+    }
+
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Insufficient permissions. Admin only." });
+    }
+
+    // Validate comment body
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+      return res.status(400).json({ error: "Comment body is required and cannot be empty" });
+    }
+
+    // Verify the comment exists and is not deleted
+    const { rows: commentRows } = await query(
+      "SELECT id, article_id, user_id, created_at, updated_at, edited_at, edited_by_user_id FROM comments WHERE id = ? AND deleted_at IS NULL",
+      [id]
+    );
+
+    if (!commentRows || commentRows.length === 0) {
+      return res.status(404).json({ error: "Comment not found or deleted" });
+    }
+
+    const existingComment = commentRows[0];
+
+    // Update comment in database
+    await query(
+      "UPDATE comments SET body = ?, edited_at = NOW(), edited_by_user_id = ?, updated_at = NOW() WHERE id = ?",
+      [body.trim(), userId, id]
+    );
+
+    // Return updated comment with all relevant fields
+    res.json({
+      id: String(existingComment.id),
+      article_id: String(existingComment.article_id),
+      user_id: String(existingComment.user_id),
+      author_display_name: req.user.display_name, // Admin's display name
+      body: body.trim(),
+      created_at: toISO(existingComment.created_at),
+      updated_at: new Date().toISOString(),
+      edited_at: new Date().toISOString(),
+      edited_by_user_id: String(userId)
+    });
+  } catch (error) {
+    console.error("Error editing comment:", error);
+    res.status(500).json({ error: "Failed to edit comment" });
+  }
+});
+/**
  * POST /api/articles
  * Create a new (published) article with English translation, optional image
  *

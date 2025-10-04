@@ -2,6 +2,9 @@
 
 // Utility: safe ISO string conversion
 const toISO = (d) => {
+  if (d === null || d === undefined) { // Add this explicit check
+    return null;
+  }
   const dt = d instanceof Date ? d : new Date(d);
   return Number.isNaN(dt.getTime()) ? null : dt.toISOString();
 };
