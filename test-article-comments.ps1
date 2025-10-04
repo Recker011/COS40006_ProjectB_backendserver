@@ -175,6 +175,117 @@ try {
     Write-TestResult -TestName "Create test article" -ExpectedStatusCode 201 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
     exit 1 # Exit if article creation fails
 }
+ 
+ # --- Test 3: POST /api/articles/:id/comments (Create comment for testing edit functionality) ---
+ Write-Host "TEST 3: POST /api/articles/$articleId/comments (Create comment for testing edit functionality)" -ForegroundColor Magenta
+ $commentData = @{
+     body = "This is a test comment to be edited."
+ } | ConvertTo-Json
+ 
+ $commentId = $null
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/$articleId/comments" -Method Post -Headers $commenterHeaders -Body $commentData
+     $commentId = $response.id
+     Write-TestResult -TestName "Create comment for edit testing" -ExpectedStatusCode 201 -ActualStatusCode 201 -Response $response
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Create comment for edit testing" -ExpectedStatusCode 201 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
+ 
+ # --- Test 4: PUT /api/articles/comments/:id (Edit comment as admin) ---
+ Write-Host "TEST 4: PUT /api/articles/comments/$commentId (Edit comment as admin)" -ForegroundColor Magenta
+ $editCommentData = @{
+     body = "This is an edited comment by admin."
+ } | ConvertTo-Json
+ 
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/comments/$commentId" -Method Put -Headers $adminHeaders -Body $editCommentData
+     Write-TestResult -TestName "Edit comment (Admin)" -ExpectedStatusCode 200 -ActualStatusCode 200 -Response $response
+     
+     # Verify the comment was edited correctly
+     if ($response.body -eq "This is an edited comment by admin.") {
+         Write-Host "Verification: Comment body updated correctly." -ForegroundColor Green
+     } else {
+         Write-Host "Verification: Comment body not updated correctly. Expected 'This is an edited comment by admin.', Got '$($response.body)'" -ForegroundColor Red
+     }
+     
+     if ($response.edited_at -ne $null) {
+         Write-Host "Verification: edited_at field populated correctly." -ForegroundColor Green
+     } else {
+         Write-Host "Verification: edited_at field not populated." -ForegroundColor Red
+     }
+     
+     if ($response.edited_by_user_id -eq "1") {
+         Write-Host "Verification: edited_by_user_id field populated correctly." -ForegroundColor Green
+     } else {
+         Write-Host "Verification: edited_by_user_id field not populated correctly. Expected '1', Got '$($response.edited_by_user_id)'" -ForegroundColor Red
+     }
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Edit comment (Admin)" -ExpectedStatusCode 200 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
+ 
+ # --- Test 5: PUT /api/articles/comments/:id (Edit comment as non-admin) ---
+ Write-Host "TEST 5: PUT /api/articles/comments/$commentId (Edit comment as non-admin)" -ForegroundColor Magenta
+ $editCommentData = @{
+     body = "This comment should not be edited by non-admin."
+ } | ConvertTo-Json
+ 
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/comments/$commentId" -Method Put -Headers $commenterHeaders -Body $editCommentData
+     Write-TestResult -TestName "Edit comment (Non-admin)" -ExpectedStatusCode 403 -ActualStatusCode 200 -Response $response
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Edit comment (Non-admin)" -ExpectedStatusCode 403 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
+ 
+ # --- Test 6: PUT /api/articles/comments/:id (Edit non-existent comment) ---
+ Write-Host "TEST 6: PUT /api/articles/comments/99999 (Edit non-existent comment)" -ForegroundColor Magenta
+ $editCommentData = @{
+     body = "This comment should not exist."
+ } | ConvertTo-Json
+ 
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/comments/99999" -Method Put -Headers $adminHeaders -Body $editCommentData
+     Write-TestResult -TestName "Edit non-existent comment" -ExpectedStatusCode 404 -ActualStatusCode 200 -Response $response
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Edit non-existent comment" -ExpectedStatusCode 404 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
+ 
+ # --- Test 7: PUT /api/articles/comments/:id (Edit comment with invalid ID) ---
+ Write-Host "TEST 7: PUT /api/articles/comments/invalid (Edit comment with invalid ID)" -ForegroundColor Magenta
+ $editCommentData = @{
+     body = "This comment has invalid ID."
+ } | ConvertTo-Json
+ 
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/comments/invalid" -Method Put -Headers $adminHeaders -Body $editCommentData
+     Write-TestResult -TestName "Edit comment with invalid ID" -ExpectedStatusCode 400 -ActualStatusCode 200 -Response $response
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Edit comment with invalid ID" -ExpectedStatusCode 400 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
+ 
+ # --- Test 8: PUT /api/articles/comments/:id (Edit comment with empty body) ---
+ Write-Host "TEST 8: PUT /api/articles/comments/$commentId (Edit comment with empty body)" -ForegroundColor Magenta
+ $editCommentData = @{
+     body = ""
+ } | ConvertTo-Json
+ 
+ try {
+     $response = Invoke-RestMethod -Uri "$baseUrl/articles/comments/$commentId" -Method Put -Headers $adminHeaders -Body $editCommentData
+     Write-TestResult -TestName "Edit comment with empty body" -ExpectedStatusCode 400 -ActualStatusCode 200 -Response $response
+ } catch {
+     $statusCode = $_.Exception.Response.StatusCode.Value__
+     $responseBody = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+     Write-TestResult -TestName "Edit comment with empty body" -ExpectedStatusCode 400 -ActualStatusCode $statusCode -Response ($responseBody | ConvertFrom-Json)
+ }
 
 
 # --- Test 4: GET /api/articles/:id/comments (Successful retrieval) ---

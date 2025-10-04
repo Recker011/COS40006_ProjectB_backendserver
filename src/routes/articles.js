@@ -485,6 +485,87 @@ router.delete("/comments/:id", authenticate, async (req, res) => {
 });
 
 /**
+ * PUT /api/articles/comments/:id
+ * Edit a comment (admin only)
+ *
+ * Request headers:
+ * Authorization: Bearer <jwt_token>
+ *
+ * Request body:
+ * {
+ *   "body": "Edited comment content"
+ * }
+ *
+ * Response (success):
+ * {
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "edited_at": "ISO string",
+ *   "edited_by_user_id": "string"
+ * }
+ */
+router.put("/comments/:id", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { body } = req.body;
+    const userId = req.user.id;
+
+    // Validate comment ID
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid comment ID" });
+    }
+
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Insufficient permissions. Admin only." });
+    }
+
+    // Validate comment body
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+      return res.status(400).json({ error: "Comment body is required and cannot be empty" });
+    }
+
+    // Verify the comment exists and is not deleted
+    const { rows: commentRows } = await query(
+      "SELECT id, article_id, user_id, created_at, updated_at, edited_at, edited_by_user_id FROM comments WHERE id = ? AND deleted_at IS NULL",
+      [id]
+    );
+
+    if (!commentRows || commentRows.length === 0) {
+      return res.status(404).json({ error: "Comment not found or deleted" });
+    }
+
+    const existingComment = commentRows[0];
+
+    // Update comment in database
+    await query(
+      "UPDATE comments SET body = ?, edited_at = NOW(), edited_by_user_id = ?, updated_at = NOW() WHERE id = ?",
+      [body.trim(), userId, id]
+    );
+
+    // Return updated comment with all relevant fields
+    res.json({
+      id: String(existingComment.id),
+      article_id: String(existingComment.article_id),
+      user_id: String(existingComment.user_id),
+      author_display_name: req.user.display_name, // Admin's display name
+      body: body.trim(),
+      created_at: toISO(existingComment.created_at),
+      updated_at: new Date().toISOString(),
+      edited_at: new Date().toISOString(),
+      edited_by_user_id: String(userId)
+    });
+  } catch (error) {
+    console.error("Error editing comment:", error);
+    res.status(500).json({ error: "Failed to edit comment" });
+  }
+});
+/**
  * POST /api/articles
  * Create a new (published) article with English translation, optional image
  *
