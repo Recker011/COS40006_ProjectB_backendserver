@@ -99,7 +99,7 @@
 ### **7. System Administration**
 
 **Additions:**
-- `GET /api/admin/stats` - System statistics
+- `GET /api/admin/stats` - System statistics (includes inactive users and orphaned content counts)
 - `GET /api/admin/users/inactive` - Inactive users
 - `GET /api/admin/content/orphaned` - Orphaned content
 - `POST /api/admin/cleanup` - Clean up orphaned data

@@ -51,6 +51,12 @@ const userRoutes = require('./routes/users');
 const searchRoutes = require('./routes/search');
 const categoryRoutes = require('./routes/categories');
 
+// Import admin routes
+const adminRoutes = require('./routes/admin');
+
+// Import translation routes
+const translationRoutes = require('./routes/translations');
+
 // health endpoint: returns server uptime + DB status
 api.get("/health", async (req, res) => {
   const started = Date.now();
@@ -95,6 +101,12 @@ api.use('/', searchRoutes);
 
 // Mount category routes
 api.use('/categories', categoryRoutes);
+
+// Mount admin routes
+api.use('/admin', adminRoutes);
+
+// Mount translation routes
+api.use('/translations', translationRoutes);
 
 // Endpoint to run PowerShell tests
 api.post('/run-tests', (req, res) => {

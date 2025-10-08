@@ -6,6 +6,133 @@
 - **Description**: Returns server uptime and database status
 - **Response**: JSON object with server and database information
 
+### Admin Endpoints
+
+#### System Statistics
+- **Endpoint**: `/api/admin/stats`
+- **Method**: GET
+- **Description**: Retrieves system statistics including article counts, user counts, comment counts, tag counts, category counts, and orphaned content counts. Only accessible by admin users.
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'`
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "stats": {
+    "articles": {
+      "total": 100,
+      "published": 80,
+      "drafts": 15,
+      "hidden": 5
+    },
+    "users": {
+      "total": 50,
+      "active": 45,
+      "inactive": 5,
+      "roles": {
+        "admin": 2,
+        "editor": 5,
+        "reader": 43
+      }
+    },
+    "comments": {
+      "total": 200,
+      "active": 180
+    },
+    "tags": {
+      "total": 25
+    },
+    "categories": {
+      "total": 10
+    },
+    "orphanedContent": {
+      "articlesWithoutTranslations": 2,
+      "translationsWithoutArticles": 1,
+      "tagsWithoutArticles": 3,
+      "categoriesWithoutArticles": 1
+    }
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user is not an admin).
+  - `500 Internal Server Error`: Server processing error.
+
+#### List Inactive Users
+- **Endpoint**: `/api/admin/users/inactive`
+- **Method**: GET
+- **Description**: Retrieves a list of all inactive users. Only accessible by admin users.
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'`
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "users": [
+    {
+      "id": 3,
+      "email": "inactiveuser@example.com",
+      "displayName": "Inactive User",
+      "role": "reader",
+      "createdAt": "2023-01-03T12:00:00Z",
+      "updatedAt": "2023-01-03T12:00:00Z"
+    }
+  ]
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user is not an admin).
+  - `500 Internal Server Error`: Server processing error.
+
+#### List Orphaned Content
+- **Endpoint**: `/api/admin/content/orphaned`
+- **Method**: GET
+- **Description**: Retrieves lists of orphaned content in the system. Only accessible by admin users.
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'`
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "orphanedContent": {
+    "articlesWithoutTranslations": [],
+    "translationsWithoutArticles": [],
+    "tagsWithoutArticles": [],
+    "categoriesWithoutArticles": []
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user is not an admin).
+  - `500 Internal Server Error`: Server processing error.
+
+#### Clean Up Orphaned Data
+- **Endpoint**: `/api/admin/cleanup`
+- **Method**: POST
+- **Description**: Cleans up orphaned data in the system. Only accessible by admin users.
+- **Authentication**: Required (JWT Token)
+- **Authorization**: User must have `role: 'admin'`
+- **Success Response (200 OK)**:
+```json
+{
+  "ok": true,
+  "message": "Orphaned data cleaned up successfully",
+  "cleanupStats": {
+    "articlesWithoutTranslations": 0,
+    "translationsWithoutArticles": 0,
+    "tagsWithoutArticles": 0,
+    "categoriesWithoutArticles": 0
+  }
+}
+```
+- **Error Responses**:
+  - `401 Unauthorized`: Missing or invalid JWT token.
+  - `403 Forbidden`: Insufficient permissions (user is not an admin).
+  - `500 Internal Server Error`: Server processing error.
+
 ### Authentication
 #### Login
 - **Endpoint**: `/api/auth/login`
