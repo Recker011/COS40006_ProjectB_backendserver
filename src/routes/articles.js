@@ -47,7 +47,9 @@ router.get("/", async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -94,7 +96,9 @@ router.get("/", async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -140,7 +144,9 @@ router.get("/recent", async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -186,7 +192,9 @@ router.get("/recent", async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -224,7 +232,9 @@ router.get("/by-author/:userId", async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -268,7 +278,9 @@ router.get("/by-author/:userId", async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -302,7 +314,9 @@ router.get("/drafts", authenticate, async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -353,7 +367,9 @@ router.get("/drafts", authenticate, async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -391,7 +407,9 @@ router.get("/tags/lang/:langCode", async (req, res) => {
         at.slug,
         at.excerpt,
         a.published_at,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM tags t
       INNER JOIN article_tags atr ON t.id = atr.tag_id
       INNER JOIN articles a ON atr.article_id = a.id
@@ -435,7 +453,9 @@ router.get("/tags/lang/:langCode", async (req, res) => {
         slug: articleData.slug,
         excerpt: articleData.excerpt,
         published_at: toISO(articleData.published_at),
-        media_urls: articleData.media_urls ? articleData.media_urls.split('|||') : [],
+        media_urls: articleData.media_urls ? articleData.media_urls.split('|||').filter(Boolean) : [],
+        image_urls: articleData.image_urls ? articleData.image_urls.split('|||').filter(Boolean) : [],
+        video_urls: articleData.video_urls ? articleData.video_urls.split('|||').filter(Boolean) : [],
       });
       return acc;
     }, {});
@@ -537,7 +557,9 @@ router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req,
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -581,7 +603,9 @@ router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req,
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -1325,7 +1349,9 @@ router.get("/:id/:lang", async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -1356,7 +1382,9 @@ router.get("/:id/:lang", async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(",") : [],
       tags_names: article.tags_names ? article.tags_names.split(",") : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     });
   } catch (error) {
     console.error("Error fetching article by id and lang:", error);
@@ -1391,7 +1419,9 @@ router.get("/:lang", async (req, res, next) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -1435,7 +1465,9 @@ router.get("/:lang", async (req, res, next) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(",") : [],
       tags_names: article.tags_names ? article.tags_names.split(",") : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     }));
 
     res.json(articles);
@@ -1465,7 +1497,9 @@ router.get("/:id", async (req, res) => {
         a.updated_at,
         GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
         GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
-        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'image' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS image_urls,
+        GROUP_CONCAT(DISTINCT CASE WHEN ma.type = 'video' THEN ma.url END ORDER BY ma.url ASC SEPARATOR '|||') AS video_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
@@ -1496,7 +1530,9 @@ router.get("/:id", async (req, res) => {
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
-      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||').filter(Boolean) : [],
+      image_urls: article.image_urls ? article.image_urls.split('|||').filter(Boolean) : [],
+      video_urls: article.video_urls ? article.video_urls.split('|||').filter(Boolean) : [],
     });
   } catch (error) {
     console.error("Error fetching article:", error);
@@ -2051,6 +2087,8 @@ router.post("/", authenticate, requireRole(['admin', 'editor']), async (req, res
         title,
         content,
         media_urls: allMediaUrls,
+        image_urls: allMediaUrls.filter(u => mimeFromUrl(u).startsWith('image/')),
+        video_urls: allMediaUrls.filter(u => mimeFromUrl(u).startsWith('video/')),
         language_code: primaryLang, // Indicate the language created
         tags: tags || [], // Include tags in the response
         created_at: new Date().toISOString(),
@@ -2187,6 +2225,8 @@ router.put("/:id", authenticate, requireRole(['admin', 'editor']), async (req, r
         title,
         content,
         media_urls: allMediaUrls,
+        image_urls: allMediaUrls.filter(u => mimeFromUrl(u).startsWith('image/')),
+        video_urls: allMediaUrls.filter(u => mimeFromUrl(u).startsWith('video/')),
         language_code: targetLang, // Indicate the language updated
         tags: tags || [], // Include tags in the response
         created_at: toISO(articleRows[0].created_at),

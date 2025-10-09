@@ -1,3 +1,4 @@
+
 ## API Endpoints
 
 ### Health Check
@@ -999,6 +1000,7 @@ curl "http://localhost:3000/api/articles/recent?days=30&lang=bn&tag=alpha"
 ```bash
 curl "http://localhost:3000/api/articles/tags/lang/en?search=updates"
 ```
+
 ### Tag Management
 
 #### List All Tags
@@ -1464,6 +1466,66 @@ If `includeMeta=true`:
   - `404 Not Found`: Category with the specified ID does not exist.
   - `500 Internal Server Error`: Server processing error.
 
+### Translation Management
+
+#### Get Available Languages
+- **Endpoint**: `/api/translations/languages`
+- **Method**: GET
+- **Description**: Retrieves a list of available languages for translations.
+- **Response**:
+```json
+[
+  {
+    "code": "string",
+    "name": "string"
+  }
+]
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error.
+
+#### Get Articles Missing Translations
+- **Endpoint**: `/api/translations/missing`
+- **Method**: GET
+- **Description**: Retrieves a list of articles that are missing translations for one or more languages.
+- **Response**:
+```json
+[
+  {
+    "article_id": "string",
+    "missing_languages": ["string"]
+  }
+]
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error.
+
+#### Get Translation Status
+- **Endpoint**: `/api/translations/status`
+- **Method**: GET
+- **Description**: Retrieves statistics about translation completion across all articles.
+- **Response**:
+```json
+{
+  "total_articles": "number",
+  "fully_translated": "number",
+  "partially_translated": "number",
+  "not_translated": "number",
+  "language_breakdown": {
+    "en": {
+      "translated_articles": "number",
+      "completion_percentage": "number"
+    },
+    "bn": {
+      "translated_articles": "number",
+      "completion_percentage": "number"
+    }
+  }
+}
+```
+- **Error Responses**:
+  - `500 Internal Server Error`: Server processing error.
+
 ### Testing
 
 #### Run PowerShell Tests
@@ -1776,78 +1838,4 @@ const login = async (email, password) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-    
-    if (data.ok) {
-      // Store token (use sessionStorage for security)
-      sessionStorage.setItem('authToken', data.token);
-      return data;
-    }
-    
-    throw new Error(data.error);
-  } catch (error) {
-    console.error('Login failed:', error);
-    throw error;
-  }
-};
-
-// Authenticated request
-const apiRequest = async (endpoint, options = {}) => {
-  const token = sessionStorage.getItem('authToken');
-  
-  const response = await fetch(`/api${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-  
-  return response.json();
-};
-```
-
-### Flutter
-```dart
-// Login function
-Future<Map<String, dynamic>> login(String email, String password) async {
-  final response = await http.post(
-    Uri.parse('http://localhost:3000/api/auth/login'),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'email': email, 'password': password}),
-  );
-
-  final data = jsonDecode(response.body);
-  
-  if (data['ok']) {
-    // Store token securely
-    final storage = FlutterSecureStorage();
-    await storage.write(key: 'authToken', value: data['token']);
-  }
-  
-  return data;
-}
-
-// Authenticated request
-Future<dynamic> apiRequest(String endpoint, {String method = 'GET', dynamic body}) async {
-  final storage = FlutterSecureStorage();
-  final token = await storage.read(key: 'authToken');
-  
-  final headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $token'
-  };
-  
-  final response = await http.request(
-    Uri.parse('http://localhost:3000/api$endpoint'),
-    method: method,
-    headers: headers,
-    body: body != null ? jsonEncode(body) : null,
-  );
-  
-  return jsonDecode(response.body);
-}
+      body: JSON.stringify({ email, password
