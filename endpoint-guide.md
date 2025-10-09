@@ -504,12 +504,11 @@ Authorization: Bearer <jwt_token>
     "id": "1",
     "title": "Sample Article",
     "content": "Article content...",
-    "image_url": "https://example.com/image.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en",
     "tags": ["tech", "news"],
-    "tags_names": ["Technology", "News"]
+    "tags_names": ["Technology", "News"],
+    "media_urls": ["https://example.com/image.jpg"]
   }
 ]
 ```
@@ -554,12 +553,11 @@ Two convenience endpoints were added so the language can be supplied as a path s
   "id": "string",
   "title": "string",
   "content": "string",
-  "image_url": "string|null",
   "created_at": "ISO string",
   "updated_at": "ISO string",
-  "language_code": "string",
   "tags": ["string"],
-  "tags_names": ["string"]
+  "tags_names": ["string"],
+  "media_urls": ["string"]
 }
 ```
 
@@ -571,12 +569,26 @@ Two convenience endpoints were added so the language can be supplied as a path s
 {
   "title": "New Article",
   "content": "Article content...",
-  "image_url": "https://example.com/image.jpg",
+  "media_urls": ["https://example.com/image.jpg", "https://example.com/video.mp4"],
   "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
-  "tags": ["tech", "news"] // Optional: Array of tag slugs
+  "tags": ["tech", "news"], // Optional: Array of tag slugs
+  "category_id": 1, // Optional: Numeric category ID
+  "category_code": "general" // Optional: Category code (used if category_id not provided)
 }
 ```
-- **Response**: Created article object (includes `language_code` and `tags` of the created translation)
+- **Success Response (201 Created)**:
+```json
+{
+  "id": "1",
+  "title": "New Article",
+  "content": "Article content...",
+  "media_urls": ["https://example.com/image.jpg", "https://example.com/video.mp4"],
+  "language_code": "en",
+  "tags": ["tech", "news"],
+  "created_at": "2025-10-09T00:55:00.000Z",
+  "updated_at": "2025-10-09T00:55:00.000Z"
+}
+```
 
 #### Update Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
@@ -586,12 +598,24 @@ Two convenience endpoints were added so the language can be supplied as a path s
 {
   "title": "Updated Title",
   "content": "New content...",
-  "image_url": "https://example.com/image.jpg",
+  "media_urls": ["https://example.com/image.jpg", "https://example.com/video.mp4"],
   "language_code": "en", // Optional: 'en' or 'bn'. Defaults to 'en'.
   "tags": ["tech", "news"] // Optional: Array of tag slugs
 }
 ```
-- **Response**: Updated article object (includes `language_code` and `tags` of the updated translation)
+- **Success Response (200 OK)**:
+```json
+{
+  "id": "1",
+  "title": "Updated Title",
+  "content": "New content...",
+  "media_urls": ["https://example.com/image.jpg", "https://example.com/video.mp4"],
+  "language_code": "en",
+  "tags": ["tech", "news"],
+  "created_at": "2025-08-20T12:34:56.789Z",
+  "updated_at": "2025-10-09T00:55:00.000Z"
+}
+```
 
 #### Delete Article (Admin/Editor only)
 - **Endpoint**: `/api/articles/:id`
@@ -621,11 +645,11 @@ Two convenience endpoints were added so the language can be supplied as a path s
     "id": "string",
     "title": "string",
     "content": "string",
-    "image_url": "string|null",
     "created_at": "ISO string",
     "updated_at": "ISO string",
     "tags": ["string"],
-    "tags_names": ["string"]
+    "tags_names": ["string"],
+    "media_urls": ["string"]
   }
 ]
 ```
@@ -646,7 +670,21 @@ curl -H "Authorization: Bearer YOUR_JWT" "http://localhost:3000/api/articles/dra
   - `search`: optional substring match on title/body
   - `lang`: `en` | `bn` (default `en`)
   - `tag`: optional tag code filter
-- Success Response (200 OK): Same structure as Drafts/Lists
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"],
+    "media_urls": ["string"]
+  }
+]
+```
 - Error Responses:
   - 401 Unauthorized: Missing/invalid token
   - 403 Forbidden: Insufficient role
@@ -862,7 +900,21 @@ curl -X DELETE "http://localhost:3000/api/articles/123/translations/bn" \
   - `lang`: `en` | `bn` (default `en`)
   - `search`: optional substring match on title/body
   - `tag`: optional tag code filter
-- Success Response (200 OK): Same structure as List/Search Articles
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"],
+    "media_urls": ["string"]
+  }
+]
+```
 - Error Responses:
   - 400 Bad Request: Invalid userId
   - 500 Internal Server Error
@@ -881,7 +933,22 @@ curl "http://localhost:3000/api/articles/by-author/1?lang=en&search=guide"
   - `lang`: `en` | `bn` (default `en`)
   - `search`: optional substring match on title/body
   - `tag`: optional tag code filter
-- Success Response (200 OK): Same structure as List/Search Articles (ordered by `published_at DESC`)
+- Success Response (200 OK):
+```json
+[
+  {
+    "id": "string",
+    "title": "string",
+    "content": "string",
+    "created_at": "ISO string",
+    "updated_at": "ISO string",
+    "tags": ["string"],
+    "tags_names": ["string"],
+    "media_urls": ["string"]
+  }
+]
+```
+(Ordered by `published_at DESC`)
 - Error Responses:
   - 400 Bad Request: Invalid `days` value (only 7 or 30 allowed)
   - 500 Internal Server Error
@@ -909,8 +976,8 @@ curl "http://localhost:3000/api/articles/recent?days=30&lang=bn&tag=alpha"
       "title": "Latest in Tech",
       "slug": "latest-in-tech",
       "excerpt": "A summary of the latest tech news...",
-      "image_url": null,
-      "published_at": "2025-10-03T10:00:00.000Z"
+      "published_at": "2025-10-03T10:00:00.000Z",
+      "media_urls": []
     }
   ],
   "General": [
@@ -919,8 +986,8 @@ curl "http://localhost:3000/api/articles/recent?days=30&lang=bn&tag=alpha"
       "title": "General Updates",
       "slug": "general-updates",
       "excerpt": "A summary of general updates...",
-      "image_url": "https://example.com/image.jpg",
-      "published_at": "2025-10-02T10:00:00.000Z"
+      "published_at": "2025-10-02T10:00:00.000Z",
+      "media_urls": ["https://example.com/image.jpg"]
     }
   ]
 }
@@ -1066,11 +1133,11 @@ curl "http://localhost:3000/api/articles/tags/lang/en?search=updates"
     "id": "string",
     "title": "string",
     "content": "string",
-    "image_url": "string|null",
     "created_at": "ISO string",
     "updated_at": "ISO string",
     "tags": ["string"],
-    "tags_names": ["string"]
+    "tags_names": ["string"],
+    "media_urls": ["string"]
   }
 ]
 ```
@@ -1312,11 +1379,11 @@ If `includeMeta=true`:
     "id": "string",
     "title": "string",
     "content": "string",
-    "image_url": "string|null",
     "created_at": "ISO string",
     "updated_at": "ISO string",
     "tags": ["string"],
-    "tags_names": ["string"]
+    "tags_names": ["string"],
+    "media_urls": ["string"]
   }
 ]
 ```
@@ -1449,12 +1516,11 @@ A successful response will look like:
     "id": "1",
     "title": "Emergency Preparedness Guide",
     "content": "Comprehensive guide for emergency situations...",
-    "image_url": "https://example.com/emergency.jpg",
     "created_at": "2025-08-20T12:34:56.789Z",
     "updated_at": "2025-08-20T12:34:56.789Z",
-    "language_code": "en",
     "tags": ["tech", "news"],
-    "tags_names": ["Technology", "News"]
+    "tags_names": ["Technology", "News"],
+    "media_urls": ["https://example.com/emergency.jpg"]
   }
 ]
 ```
@@ -1477,12 +1543,11 @@ Successful response:
   "id": "1",
   "title": "জরুরী প্রস্তুতি নির্দেশিকা",
   "content": "জরুরী পরিস্থিতির জন্য বিস্তারিত নির্দেশিকা...",
-  "image_url": "https://example.com/emergency.jpg",
   "created_at": "2025-08-20T12:34:56.789Z",
   "updated_at": "2025-08-21T07:20:30.264Z",
-  "language_code": "bn",
   "tags": ["tech", "news"],
-  "tags_names": ["Technology", "News"]
+  "tags_names": ["Technology", "News"],
+  "media_urls": ["https://example.com/emergency.jpg"]
 }
 ```
 
@@ -1491,7 +1556,7 @@ Successful response:
 curl -X POST http://localhost:3000/api/articles \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"নতুন নিবন্ধ","content":"নিবন্ধের বিষয়বস্তু...","image_url":"https://example.com/image.jpg","language_code":"bn","tags":["bangla","news"]}'
+  -d '{"title":"নতুন নিবন্ধ","content":"নিবন্ধের বিষয়বস্তু...","media_urls":["https://example.com/image.jpg"],"language_code":"bn","tags":["bangla","news"]}'
 ```
 
 Success response (201 Created):
@@ -1500,7 +1565,7 @@ Success response (201 Created):
   "id": "2",
   "title": "নতুন নিবন্ধ",
   "content": "নিবন্ধের বিষয়বস্তু...",
-  "image_url": "https://example.com/image.jpg",
+  "media_urls": ["https://example.com/image.jpg"],
   "language_code": "bn",
   "tags": ["bangla", "news"],
   "created_at": "2025-08-21T07:20:30.264Z",
@@ -1513,7 +1578,7 @@ Success response (201 Created):
 curl -X PUT http://localhost:3000/api/articles/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"title":"আপডেট করা শিরোনাম","content":"নতুন বিষয়বস্তু...","language_code":"bn","tags":["bangla","urgent"]}'
+  -d '{"title":"আপডেট করা শিরোনাম","content":"নতুন বিষয়বস্তু...","media_urls":["https://example.com/emergency.jpg"],"language_code":"bn","tags":["bangla","urgent"]}'
 ```
 
 Success response shows updated values:
@@ -1522,7 +1587,7 @@ Success response shows updated values:
   "id": "1",
   "title": "আপডেট করা শিরোনাম",
   "content": "নতুন বিষয়বস্তু...",
-  "image_url": "https://example.com/emergency.jpg",
+  "media_urls": ["https://example.com/emergency.jpg"],
   "language_code": "bn",
   "tags": ["bangla", "urgent"],
   "created_at": "2025-08-20T12:34:56.789Z",

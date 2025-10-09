@@ -43,20 +43,22 @@ router.get("/", async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'published'
     `;
 
@@ -88,11 +90,11 @@ router.get("/", async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
-      tags: article.tags_codes ? article.tags_codes.split(',') : [], // Convert comma-separated string to array
-      tags_names: article.tags_names ? article.tags_names.split(',') : [], // Convert comma-separated string to array
+      tags: article.tags_codes ? article.tags_codes.split(',') : [],
+      tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -134,20 +136,22 @@ router.get("/recent", async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'published'
         AND a.published_at IS NOT NULL
         AND a.published_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
@@ -178,11 +182,11 @@ router.get("/recent", async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -216,20 +220,22 @@ router.get("/by-author/:userId", async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'published' AND a.author_user_id = ?
     `;
 
@@ -258,11 +264,11 @@ router.get("/by-author/:userId", async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -292,20 +298,22 @@ router.get("/drafts", authenticate, async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'draft'
     `;
 
@@ -341,11 +349,11 @@ router.get("/drafts", authenticate, async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -382,13 +390,16 @@ router.get("/tags/lang/:langCode", async (req, res) => {
         at.title,
         at.slug,
         at.excerpt,
-        ma.url AS image_url,
-        a.published_at
+        a.published_at,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM tags t
       INNER JOIN article_tags atr ON t.id = atr.tag_id
       INNER JOIN articles a ON atr.article_id = a.id
       INNER JOIN article_translations at ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma ON a.id = ma.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'published'
     `;
 
@@ -423,8 +434,8 @@ router.get("/tags/lang/:langCode", async (req, res) => {
         title: articleData.title,
         slug: articleData.slug,
         excerpt: articleData.excerpt,
-        image_url: articleData.image_url || null,
-        published_at: toISO(articleData.published_at)
+        published_at: toISO(articleData.published_at),
+        media_urls: articleData.media_urls ? articleData.media_urls.split('|||') : [],
       });
       return acc;
     }, {});
@@ -522,20 +533,22 @@ router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req,
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'hidden'
     `;
 
@@ -564,11 +577,11 @@ router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req,
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -797,71 +810,7 @@ router.put("/:id/translations/:lang", authenticate, requireRole(['admin','editor
  * - lang: optional 'en' or 'bn' (default 'en')
  * - tag: optional tag code to filter
  */
-router.get("/hidden", authenticate, requireRole(['admin','editor']), async (req, res) => {
-  try {
-    const { search, lang, tag } = req.query;
-    const languageCode = (lang === 'bn') ? 'bn' : 'en';
-
-    const baseSelect = `
-      SELECT
-        a.id,
-        at.title,
-        at.body AS content,
-        ma.url AS image_url,
-        a.created_at,
-        a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
-      FROM articles a
-      INNER JOIN article_translations at
-        ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
-      LEFT JOIN article_tags artag
-        ON a.id = artag.article_id
-      LEFT JOIN tags t
-        ON artag.tag_id = t.id
-      WHERE a.status = 'hidden'
-    `;
-
-    let params = [languageCode];
-    const conditions = [];
-
-    if (search && typeof search === "string" && search.trim().length > 0) {
-      const like = `%${search.trim()}%`;
-      conditions.push(`(at.title LIKE ? OR at.body LIKE ?)`);
-      params.push(like, like);
-    }
-
-    if (tag && typeof tag === "string" && tag.trim().length > 0) {
-      conditions.push(`t.code = ?`);
-      params.push(tag.trim());
-    }
-
-    const sql =
-      conditions.length > 0
-        ? `${baseSelect} AND ${conditions.join(' AND ')} GROUP BY a.id ORDER BY a.created_at DESC`
-        : `${baseSelect} GROUP BY a.id ORDER BY a.created_at DESC`;
-
-    const { rows } = await query(sql, params);
-
-    const articles = rows.map((article) => ({
-      id: String(article.id),
-      title: article.title,
-      content: article.content,
-      image_url: article.image_url || null,
-      created_at: toISO(article.created_at),
-      updated_at: toISO(article.updated_at),
-      tags: article.tags_codes ? article.tags_codes.split(',') : [],
-      tags_names: article.tags_names ? article.tags_names.split(',') : [],
-    }));
-
-    res.json(articles);
-  } catch (error) {
-    console.error("Error fetching hidden articles:", error);
-    res.status(500).json({ error: "Failed to retrieve hidden articles" });
-  }
-});
+ // Removed duplicate /hidden route (consolidated earlier)
 
 /**
  * POST /api/articles/:id/translations
@@ -1372,22 +1321,24 @@ router.get("/:id/:lang", async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.id = ? AND a.status = 'published'
-      GROUP BY a.id, at.title, at.body, ma.url, a.created_at, a.updated_at
+      GROUP BY a.id, at.title, at.body, a.created_at, a.updated_at
     `;
 
     const { rows } = await query(sql, [lang, id]);
@@ -1401,11 +1352,11 @@ router.get("/:id/:lang", async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(",") : [],
       tags_names: article.tags_names ? article.tags_names.split(",") : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     });
   } catch (error) {
     console.error("Error fetching article by id and lang:", error);
@@ -1436,20 +1387,22 @@ router.get("/:lang", async (req, res, next) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.status = 'published'
     `;
 
@@ -1478,11 +1431,11 @@ router.get("/:lang", async (req, res, next) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(",") : [],
       tags_names: article.tags_names ? article.tags_names.split(",") : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     }));
 
     res.json(articles);
@@ -1508,22 +1461,24 @@ router.get("/:id", async (req, res) => {
         a.id,
         at.title,
         at.body AS content,
-        ma.url AS image_url,
         a.created_at,
         a.updated_at,
-        GROUP_CONCAT(t.code ORDER BY t.code ASC) AS tags_codes,
-        GROUP_CONCAT(CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names
+        GROUP_CONCAT(DISTINCT t.code ORDER BY t.code ASC) AS tags_codes,
+        GROUP_CONCAT(DISTINCT CASE WHEN at.language_code = 'en' THEN t.name_en ELSE t.name_bn END ORDER BY t.code ASC) AS tags_names,
+        GROUP_CONCAT(DISTINCT ma.url ORDER BY ma.url ASC SEPARATOR '|||') AS media_urls
       FROM articles a
       INNER JOIN article_translations at
         ON a.id = at.article_id AND at.language_code = ?
-      LEFT JOIN media_assets ma
-        ON a.id = ma.id
       LEFT JOIN article_tags artag
         ON a.id = artag.article_id
       LEFT JOIN tags t
         ON artag.tag_id = t.id
+      LEFT JOIN article_media am
+        ON a.id = am.article_id
+      LEFT JOIN media_assets ma
+        ON am.media_asset_id = ma.id
       WHERE a.id = ? AND a.status = 'published'
-      GROUP BY a.id, at.title, at.body, ma.url, a.created_at, a.updated_at
+      GROUP BY a.id, at.title, at.body, a.created_at, a.updated_at
     `;
 
     const { rows } = await query(sql, [languageCode, id]);
@@ -1537,11 +1492,11 @@ router.get("/:id", async (req, res) => {
       id: String(article.id),
       title: article.title,
       content: article.content,
-      image_url: article.image_url || null,
       created_at: toISO(article.created_at),
       updated_at: toISO(article.updated_at),
       tags: article.tags_codes ? article.tags_codes.split(',') : [],
       tags_names: article.tags_names ? article.tags_names.split(',') : [],
+      media_urls: article.media_urls ? article.media_urls.split('|||') : [],
     });
   } catch (error) {
     console.error("Error fetching article:", error);
@@ -1948,24 +1903,29 @@ router.put("/comments/:id", authenticate, async (req, res) => {
  * {
  *   "title": "string (required)",
  *   "content": "string (required)",
- *   "image_url": "string (optional)",
+ *   "media_urls": ["string (optional)"],
  *   "category_id": "integer (optional)",
  *   "category_code": "string (optional, e.g. 'general'); used if category_id not provided"
  * }
  *
  * Response: Created article object
  */
-router.post("/", authenticate, async (req, res) => {
-  // Permissions: admin/editor only
+router.post("/", authenticate, requireRole(['admin', 'editor']), async (req, res) => {
   try {
-    const { title, content, image_url, category_id, category_code, language_code, tags } = req.body; // Added language_code and tags
+    const { title, content, media_urls, category_id, category_code, language_code, tags } = req.body || {};
+    // Backward compatibility: accept legacy single image_url too
+    const image_url = (req.body && typeof req.body.image_url === 'string') ? req.body.image_url.trim() : undefined;
 
     if (!title || !content) {
       return res.status(400).json({ error: "Title and content are required" });
     }
-    if (req.user.role !== "admin" && req.user.role !== "editor") {
-      return res.status(403).json({ error: "Insufficient permissions" });
+    // media_urls is optional; if provided must be an array of strings. image_url may be a single string.
+    if (media_urls !== undefined && (!Array.isArray(media_urls) || !media_urls.every(url => typeof url === 'string'))) {
+      return res.status(400).json({ error: "media_urls must be an array of strings" });
     }
+    const mediaUrlsInput = Array.isArray(media_urls) ? media_urls : [];
+    const singleImageList = image_url ? [image_url] : [];
+    const allMediaUrls = [...mediaUrlsInput, ...singleImageList];
 
     const userId = req.user.id;
     const connection = await pool.getConnection();
@@ -2050,14 +2010,38 @@ router.post("/", authenticate, async (req, res) => {
         );
       }
 
+      // Handle media (media_urls array and legacy image_url)
+      if (allMediaUrls.length > 0) {
+        for (const mediaUrl of allMediaUrls) {
+          const trimmedUrl = mediaUrl.trim();
+          if (trimmedUrl.length > 0) {
+            const mime = mimeFromUrl(trimmedUrl);
+            const type = mime.startsWith('image/') ? 'image' : (mime.startsWith('video/') ? 'video' : 'other');
 
-      // Optional image: keep media_assets.id == articleId for 1:1
-      if (image_url && image_url.trim().length > 0) {
-        const mime = mimeFromUrl(image_url);
-        await connection.execute(
-          "INSERT INTO media_assets (id, type, url, mime_type, created_at) VALUES (?, ?, ?, ?, NOW())",
-          [articleId, "image", image_url.trim(), mime]
-        );
+            // Insert into media_assets if not already present (deduplicate by url_hash)
+            const [existingMediaRows] = await connection.execute(
+              "SELECT id FROM media_assets WHERE url = ?",
+              [trimmedUrl]
+            );
+
+            let mediaAssetId;
+            if (Array.isArray(existingMediaRows) && existingMediaRows.length > 0) {
+              mediaAssetId = existingMediaRows[0].id;
+            } else {
+              const [insertMediaRes] = await connection.execute(
+                "INSERT INTO media_assets (type, url, mime_type, created_at) VALUES (?, ?, ?, NOW())",
+                [type, trimmedUrl, mime]
+              );
+              mediaAssetId = insertMediaRes.insertId;
+            }
+
+            // Link media asset to article
+            await connection.execute(
+              "INSERT INTO article_media (article_id, media_asset_id) VALUES (?, ?)",
+              [articleId, mediaAssetId]
+            );
+          }
+        }
       }
 
       await connection.commit();
@@ -2066,7 +2050,7 @@ router.post("/", authenticate, async (req, res) => {
         id: String(articleId),
         title,
         content,
-        image_url: image_url?.trim() || null,
+        media_urls: allMediaUrls,
         language_code: primaryLang, // Indicate the language created
         tags: tags || [], // Include tags in the response
         created_at: new Date().toISOString(),
@@ -2092,16 +2076,18 @@ router.post("/", authenticate, async (req, res) => {
  * {
  *   "title": "string (required)",
  *   "content": "string (required)",
- *   "image_url": "string (optional)"
+ *   "media_urls": ["string (optional)"]
  * }
  *
  * Response: Updated article object
  */
-router.put("/:id", authenticate, async (req, res) => {
+router.put("/:id", authenticate, requireRole(['admin', 'editor']), async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    const { title, content, image_url, language_code, tags } = req.body; // Added language_code and tags
+    const { title, content, media_urls, language_code, tags } = req.body || {};
+    // Backward compatibility: accept legacy single image_url too
+    const image_url = (req.body && typeof req.body.image_url === 'string') ? req.body.image_url.trim() : undefined;
 
     if (!id || !/^\d+$/.test(id)) {
       return res.status(400).json({ error: "Invalid article ID" });
@@ -2109,9 +2095,13 @@ router.put("/:id", authenticate, async (req, res) => {
     if (!title || !content) {
       return res.status(400).json({ error: "Title and content are required" });
     }
-    if (req.user.role !== "admin" && req.user.role !== "editor") {
-      return res.status(403).json({ error: "Insufficient permissions" });
+    // media_urls is optional; if provided, must be an array of strings. image_url may be a single string.
+    if (media_urls !== undefined && (!Array.isArray(media_urls) || !media_urls.every(url => typeof url === 'string'))) {
+      return res.status(400).json({ error: "media_urls must be an array of strings" });
     }
+    const mediaUrlsInput = Array.isArray(media_urls) ? media_urls : [];
+    const singleImageList = image_url ? [image_url] : [];
+    const allMediaUrls = [...mediaUrlsInput, ...singleImageList];
 
     await connection.beginTransaction();
 
@@ -2149,24 +2139,38 @@ router.put("/:id", authenticate, async (req, res) => {
         );
       }
 
-      // Update / upsert image
-      if (image_url && image_url.trim().length > 0) {
-        const mime = mimeFromUrl(image_url);
-        const [mediaRows] = await connection.execute(
-          "SELECT id FROM media_assets WHERE id = ?",
-          [id]
-        );
+      // Handle media (media_urls array and legacy image_url): delete existing and insert new ones
+      await connection.execute("DELETE FROM article_media WHERE article_id = ?", [id]);
+      if (allMediaUrls.length > 0) {
+        for (const mediaUrl of allMediaUrls) {
+          const trimmedUrl = mediaUrl.trim();
+          if (trimmedUrl.length > 0) {
+            const mime = mimeFromUrl(trimmedUrl);
+            const type = mime.startsWith('image/') ? 'image' : (mime.startsWith('video/') ? 'video' : 'other');
 
-        if (Array.isArray(mediaRows) && mediaRows.length > 0) {
-          await connection.execute(
-            "UPDATE media_assets SET url = ?, mime_type = ? WHERE id = ?",
-            [image_url.trim(), mime, id]
-          );
-        } else {
-          await connection.execute(
-            "INSERT INTO media_assets (id, type, url, mime_type, created_at) VALUES (?, ?, ?, ?, NOW())",
-            [id, "image", image_url.trim(), mime]
-          );
+            // Insert into media_assets if not already present (deduplicate by url_hash)
+            const [existingMediaRows] = await connection.execute(
+              "SELECT id FROM media_assets WHERE url = ?",
+              [trimmedUrl]
+            );
+
+            let mediaAssetId;
+            if (Array.isArray(existingMediaRows) && existingMediaRows.length > 0) {
+              mediaAssetId = existingMediaRows[0].id;
+            } else {
+              const [insertMediaRes] = await connection.execute(
+                "INSERT INTO media_assets (type, url, mime_type, created_at) VALUES (?, ?, ?, NOW())",
+                [type, trimmedUrl, mime]
+              );
+              mediaAssetId = insertMediaRes.insertId;
+            }
+
+            // Link media asset to article
+            await connection.execute(
+              "INSERT INTO article_media (article_id, media_asset_id) VALUES (?, ?)",
+              [id, mediaAssetId]
+            );
+          }
         }
       }
 
@@ -2182,7 +2186,7 @@ router.put("/:id", authenticate, async (req, res) => {
         id: String(id),
         title,
         content,
-        image_url: image_url?.trim() || null,
+        media_urls: allMediaUrls,
         language_code: targetLang, // Indicate the language updated
         tags: tags || [], // Include tags in the response
         created_at: toISO(articleRows[0].created_at),
@@ -2238,7 +2242,8 @@ router.delete("/:id", authenticate, async (req, res) => {
       // Delete in proper referential order
       await connection.execute("DELETE FROM article_tags WHERE article_id = ?", [id]);
       await connection.execute("DELETE FROM article_translations WHERE article_id = ?", [id]);
-      await connection.execute("DELETE FROM media_assets WHERE id = ?", [id]);
+      await connection.execute("DELETE FROM article_media WHERE article_id = ?", [id]); // Delete from the new join table
+      // Note: media_assets themselves are not deleted here, as they might be shared by other articles
       await connection.execute("DELETE FROM articles WHERE id = ?", [id]);
 
       await connection.commit();

@@ -80,3 +80,8 @@ is_active tinyint(1)
 created_at timestamp 
 updated_at timestamp
 last_login_at datetime
+
+Table: article_media
+Columns:
+article_id int PK 
+media_asset_id int PK

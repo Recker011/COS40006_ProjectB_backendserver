@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleCreateTitle = document.getElementById('article-create-title');
     const articleCreateContent = document.getElementById('article-create-content');
     const articleCreateImage = document.getElementById('article-create-image');
+    const articleCreateVideo = document.getElementById('article-create-video');
     const articleCreateTagsInput = document.getElementById('article-create-tags'); // New
     const articleCreateLang = document.getElementById('article-create-lang'); // New
     const articleCreateBtn = document.getElementById('article-create-btn');
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const articleUpdateTitle = document.getElementById('article-update-title');
     const articleUpdateContent = document.getElementById('article-update-content');
     const articleUpdateImage = document.getElementById('article-update-image');
+    const articleUpdateVideo = document.getElementById('article-update-video');
     const articleUpdateTagsInput = document.getElementById('article-update-tags'); // New
     const articleUpdateLang = document.getElementById('article-update-lang'); // New
     const articleUpdateBtn = document.getElementById('article-update-btn');
@@ -353,6 +355,7 @@ const tagDeleteResponse = document.getElementById('tag-delete-response');
         const title = articleCreateTitle.value.trim();
         const content = articleCreateContent.value.trim();
         const image_url = articleCreateImage.value.trim();
+        const video_url = (articleCreateVideo?.value || '').trim();
 
         if (!title || !content) {
             displayResponse(articleCreateResponse, { error: 'Title and Content are required.' });
@@ -360,8 +363,11 @@ const tagDeleteResponse = document.getElementById('tag-delete-response');
         }
 
         const body = { title, content };
-        if (image_url) {
-            body.image_url = image_url;
+        const media_urls = [];
+        if (image_url) media_urls.push(image_url);
+        if (video_url) media_urls.push(video_url);
+        if (media_urls.length > 0) {
+            body.media_urls = media_urls;
         }
         const language_code = articleCreateLang.value; // Get selected language
         if (language_code) {
@@ -382,14 +388,24 @@ const tagDeleteResponse = document.getElementById('tag-delete-response');
         const title = articleUpdateTitle.value.trim();
         const content = articleUpdateContent.value.trim();
         const image_url = articleUpdateImage.value.trim();
+        const video_url = (articleUpdateVideo?.value || '').trim();
 
         if (!articleId) {
             displayResponse(articleUpdateResponse, { error: 'Article ID is required.' });
             return;
         }
+        if (!title || !content) {
+            displayResponse(articleUpdateResponse, { error: 'Title and Content are required for update.' });
+            return;
+        }
 
-        const body = { title, content }; // Always send title and content
-        if (image_url) body.image_url = image_url;
+        const body = { title, content };
+        const media_urls = [];
+        if (image_url) media_urls.push(image_url);
+        if (video_url) media_urls.push(video_url);
+        if (media_urls.length > 0) {
+            body.media_urls = media_urls;
+        }
         const language_code = articleUpdateLang.value; // Get selected language
         if (language_code) {
             body.language_code = language_code;
@@ -397,11 +413,6 @@ const tagDeleteResponse = document.getElementById('tag-delete-response');
         const tagsInput = articleUpdateTagsInput.value.trim();
         if (tagsInput) {
             body.tags = tagsInput.split(',').map(tag => tag.trim());
-        }
-
-        if (Object.keys(body).length === 0) {
-            displayResponse(articleUpdateResponse, { error: 'Please provide at least one field to update (Title, Content, or Image URL).' });
-            return;
         }
 
         const data = await apiRequest(`/api/articles/${articleId}`, 'PUT', body, true);

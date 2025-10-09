@@ -179,6 +179,7 @@
                 <input type="text" id="article-create-title" placeholder="Title">
                 <textarea id="article-create-content" placeholder="Content"></textarea>
                 <input type="text" id="article-create-image" placeholder="Image URL (optional)">
+                <input type="text" id="article-create-video" placeholder="Video URL (optional)">
                 <input type="text" id="article-create-tags" placeholder="Tags (comma-separated, e.g., tech,news)">
                 <select id="article-create-lang">
                     <option value="en">English</option>
@@ -192,9 +193,10 @@
                 <h3>PUT /api/articles/:id</h3>
                 <p>Updates an existing article (requires authentication).</p>
                 <input type="text" id="article-update-id" placeholder="Article ID">
-                <input type="text" id="article-update-title" placeholder="New Title (optional)">
-                <textarea id="article-update-content" placeholder="New Content (optional)"></textarea>
-                <input type="text" id="article-update-image" placeholder="New Image URL (optional)">
+                <input type="text" id="article-update-title" placeholder="Title (required)">
+                <textarea id="article-update-content" placeholder="Content (required)"></textarea>
+                <input type="text" id="article-update-image" placeholder="Image URL (optional)">
+                <input type="text" id="article-update-video" placeholder="Video URL (optional)">
                 <input type="text" id="article-update-tags" placeholder="Tags (comma-separated, e.g., tech,news)">
                 <select id="article-update-lang">
                     <option value="en">English</option>
