@@ -1,106 +1,238 @@
-# Database Documentation — Information Dissemination Platform (MySQL)
+# Database Documentation
+**Authors:** Thilina Randew Kumarasinghe, Nikitha Vicum Bamunuarachchige
 
-## Overview
-A minimal, bilingual content model for web/mobile clients. Articles are language-agnostic containers; per-language text lives in `article_translations`. Media files are stored in object storage; only URLs live in DB. Optional tagging for flexible grouping.
 
-## Relationships (at a glance)
-- `articles` → `categories` (many→one)
-- `articles` → `users` (author, many→one)
-- `article_translations` → `articles` (many→one)
-- `article_tags` ↔ (`articles`, `tags`) (many↔many)
-- `comments` → `articles` (many→one)
-- `comments` → `users` (author, many→one)
-- `media_assets` (standalone; attach in app logic)
-  
-> Suggested FKs:
-> `articles.category_id → categories.id`, `articles.author_user_id → users.id`,
-> `article_translations.article_id → articles.id`,
-> `article_tags.article_id → articles.id`, `article_tags.tag_id → tags.id`,
-> `comments.article_id → articles.id`, `comments.user_id → users.id`,
-> `comments.edited_by_user_id → users.id (NULLABLE)`, `comments.deleted_by_user_id → users.id (NULLABLE)`,
-> `media_assets.uploaded_by → users.id`.
+## 1. Introduction
 
----
+This document provides a detailed overview of the MySQL database schema for the COS40006 Project B Backend Server. It includes an Entity-Relationship (ER) diagram, detailed descriptions of each table, and notes on indexing and relationships.
 
-## Tables
+## 2. Entity-Relationship (ER) Diagram
 
-### `users`
-**Reasoning**: Authentication/authorization and attribution (article author).  
-**Key**: `id` (PK)  
-**Columns**: `email`, `password_hash`, `display_name`, `role ('admin'|'editor'|'reader')`, `is_active`, timestamps.  
-**Notes**: `email` should be unique; use `is_active` to disable accounts without deletes.
+The following diagram illustrates the relationships between the tables in the database.
 
-### `categories`
-**Reasoning**: Stable, flat taxonomy for browsing and filtering.  
-**Key**: `id` (PK)  
-**Columns**: `code`, `name_en`, `name_bn`, `created_at`.  
-**Notes**: `code` should be unique and stable (safe to reference in clients).
+```mermaid
+erDiagram
+    users {
+        int id PK
+        varchar email UK
+        varchar password_hash
+        varchar display_name
+        enum role
+        tinyint is_active
+        timestamp created_at
+        timestamp updated_at
+        datetime last_login_at
+    }
 
-### `articles`
-**Reasoning**: Language-agnostic container holding workflow state, timing, and ownership.  
-**Key**: `id` (PK)  
-**Columns**: `category_id`, `author_user_id`, `status ('draft'|'published'|'hidden')`, `published_at`, timestamps.  
-**Notes**: Gate public content by `status='published' AND published_at <= NOW()`.
+    categories {
+        int id PK
+        varchar code UK
+        varchar name_en
+        varchar name_bn
+        timestamp created_at
+    }
 
-### `article_translations`
-**Reasoning**: Per-language text and routing (slugs), enabling bilingual content and search.  
-**Key**: `id` (PK)  
-**Columns**: `article_id`, `language_code ('en'|'bn')`, `title`, `slug`, `excerpt`, `body (LONGTEXT)`, timestamps.  
-**Notes**: Recommend unique `(article_id, language_code)` and `(slug, language_code)`; add `FULLTEXT(title, excerpt, body)` for search.
+    articles {
+        int id PK
+        int category_id FK
+        int author_user_id FK
+        enum status
+        datetime published_at
+        timestamp created_at
+        timestamp updated_at
+    }
 
-### `tags`
-**Reasoning**: Flexible, optional topical labels (orthogonal to categories).  
-**Key**: `id` (PK)  
-**Columns**: `code`, `name_en`, `name_bn`, `created_at`.  
-**Notes**: `code` should be unique; keep tag set modest to avoid noise.
+    article_translations {
+        int id PK
+        int article_id FK
+        enum language_code
+        varchar title
+        varchar slug
+        text excerpt
+        longtext body
+        timestamp created_at
+        timestamp updated_at
+    }
 
-### `article_tags`
-**Reasoning**: Junction for many-to-many `articles` ↔ `tags`.  
-**Key**: Composite PK `(article_id, tag_id)`  
-**Columns**: `article_id`, `tag_id`.  
-**Notes**: Composite PK prevents duplicates; index `(tag_id, article_id)` for reverse lookups.
+    tags {
+        int id PK
+        varchar code UK
+        varchar name_en
+        varchar name_bn
+        timestamp created_at
+    }
 
-### `media_assets`
-**Reasoning**: Registry of uploaded files (images/videos) with stable URLs and basic metadata.  
-**Key**: `id` (PK)  
-**Columns**: `type ('image'|'video')`, `url`, `url_hash (char(64))`, `mime_type`, `width`, `height`, `duration_seconds`, `alt_text_en`, `alt_text_bn`, `uploaded_by`, `created_at`.  
-**Notes**: Enforce unique `url` or `url_hash` to deduplicate; `alt_text_*` supports accessibility; `uploaded_by` credits the uploader.
+    article_tags {
+        int article_id PK, FK
+        int tag_id PK, FK
+    }
 
-### `comments`
-**Reasoning**: User-authored remarks on articles. Schema enforces flat comments only (no replies) by omitting any `parent_comment_id`.  
-**Key**: `id` (PK)  
-**Columns**: `article_id`, `user_id`, `body (TEXT)`, `created_at`, `updated_at`, `edited_at`, `edited_by_user_id`, `deleted_at`, `deleted_by_user_id`.  
-**Notes**:
-- Authentication required to create comments (app-level).
-- Admins can edit/delete any comment and can also post comments.
-- Soft delete via `deleted_at` and `deleted_by_user_id`; readers should filter `WHERE deleted_at IS NULL`.
-- Suggested FKs:  
-  - `comments.article_id → articles.id (ON DELETE CASCADE)`  
-  - `comments.user_id → users.id (ON DELETE RESTRICT)`  
-  - `comments.edited_by_user_id → users.id (ON DELETE SET NULL)`  
-  - `comments.deleted_by_user_id → users.id (ON DELETE SET NULL)`
----
+    media_assets {
+        int id PK
+        enum type
+        varchar url UK
+        char url_hash
+        varchar mime_type
+        int uploaded_by FK
+        timestamp created_at
+    }
 
-## Suggested Indexes & Constraints (minimal)
-- `users(email)` **UNIQUE**
-- `categories(code)` **UNIQUE**
-- `tags(code)` **UNIQUE**
-- `media_assets(url)` **UNIQUE** (or `url_hash` **UNIQUE**)
-- `article_translations(article_id, language_code)` **UNIQUE**
-- `article_translations(slug, language_code)` **UNIQUE**
-- FULLTEXT `article_translations(title, excerpt, body)`
-- `articles(status, published_at)` for public lists
-- `article_tags(tag_id, article_id)` for tag→article queries
-- `comments(article_id, created_at)` for fetching comments per article in chronological order
-- `comments(user_id, created_at)` for user activity/history
-- `comments(deleted_at)` to efficiently exclude soft-deleted comments
+    article_media {
+        int article_id PK, FK
+        int media_asset_id PK, FK
+    }
 
----
+    comments {
+        int id PK
+        int article_id FK
+        int user_id FK
+        text body
+        timestamp created_at
+        timestamp updated_at
+        datetime edited_at
+        int edited_by_user_id FK
+        datetime deleted_at
+        int deleted_by_user_id FK
+    }
 
-## Common Access Patterns (brief)
-- **List articles**: join `articles` + `article_translations` by requested `language_code`, filter published, order by `published_at DESC`.
-- **Read article**: find `article_translations` by `(slug, language_code)` and join `articles` to validate publish state.
-- **Search**: FULLTEXT on `article_translations`, then join `articles` to filter publish state.
-- **Tag filter**: join `article_tags` → `articles`, then join `article_translations` for titles/slugs.
-- **Media**: fetch from `media_assets` by `url`/`url_hash`; attach to article in application layer or a lightweight link table if ordering is later required.
-- **Comments**: list by `comments.article_id` with `deleted_at IS NULL`, order by `created_at ASC`; join `users` to display `display_name`.
+    users ||--o{ articles : "is author of"
+    users ||--o{ comments : "authors"
+    users ||--o{ media_assets : "uploads"
+    categories ||--o{ articles : "categorizes"
+    articles ||--|{ article_translations : "has"
+    articles ||--|{ article_tags : "is tagged with"
+    articles ||--|{ article_media : "has"
+    articles ||--o{ comments : "has"
+    tags ||--|{ article_tags : "tags"
+    media_assets ||--|{ article_media : "is used in"
+    comments }|--|| users : "edited by"
+    comments }|--|| users : "deleted by"
+```
+
+## 3. Table Schemas
+
+### 3.1. `users`
+
+Stores user account information for authentication, authorization, and content attribution.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | `int` | PK, AI | Unique identifier for the user. |
+| email | `varchar(191)` | UK | User's email address, used for login. Must be unique. |
+| password_hash | `varchar(255)` | | Hashed password for security. |
+| display_name | `varchar(255)` | | Publicly visible name of the user. |
+| role | `enum(...)` | | User's role (`admin`, `editor`, `reader`), determining permissions. |
+| is_active | `tinyint(1)` | | Flag to enable/disable the account (1 for active, 0 for inactive). |
+| created_at | `timestamp` | | Timestamp of when the user account was created. |
+| updated_at | `timestamp` | | Timestamp of the last update to the user's record. |
+| last_login_at | `datetime` | | Timestamp of the user's last login. |
+
+### 3.2. `categories`
+
+Defines the primary, stable taxonomy for articles.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | `int`| PK, AI | Unique identifier for the category. |
+| code | `varchar(64)` | UK | A stable, URL-friendly code for the category. |
+| name_en | `varchar(255)` | | English name of the category. |
+| name_bn | `varchar(255)` | | Bengali name of the category. |
+| created_at | `timestamp` | | Timestamp of when the category was created. |
+
+### 3.3. `articles`
+
+The core content container, linking together translations, metadata, and authors.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id**| `int` | PK, AI | Unique identifier for the article. |
+| category_id | `int` | FK to `categories.id` | The primary category this article belongs to. |
+| author_user_id | `int` | FK to `users.id` | The user who authored the article. |
+| status | `enum(...)` | | The current state of the article (`draft`, `published`, `hidden`). |
+| published_at | `datetime`| | Timestamp of when the article was published. `NULL` if not published. |
+| created_at | `timestamp` | | Timestamp of when the article was created. |
+| updated_at | `timestamp` | | Timestamp of the last update. |
+
+### 3.4. `article_translations`
+
+Stores the language-specific content for each article.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | `int` | PK, AI | Unique identifier for the translation. |
+| article_id | `int` | FK to `articles.id` | The article this translation belongs to. |
+| language_code | `enum('en','bn')` | | Language of this translation (`en` or `bn`). |
+| title | `varchar(255)` | | The title of the article in this language. |
+| slug | `varchar(255)` | UK (with `language_code`) | URL-friendly version of the title. |
+| excerpt | `text` | | A short summary of the article. |
+| body | `longtext` | | The full content of the article. |
+| created_at | `timestamp` | | Timestamp of when the translation was created. |
+| updated_at | `timestamp` | | Timestamp of the last update. |
+
+### 3.5. `tags`
+
+Provides a flexible, secondary way to classify articles.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | `int` | PK, AI | Unique identifier for the tag. |
+| code | `varchar(64)` | UK | A stable, URL-friendly code for the tag. |
+| name_en | `varchar(255)` | | English name of the tag. |
+| name_bn | `varchar(255)` | | Bengali name of the tag. |
+| created_at | `timestamp` | | Timestamp of when the tag was created. |
+
+### 3.6. `article_tags`
+
+A junction table to create a many-to-many relationship between `articles` and `tags`.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **article_id** | `int` | PK, FK to `articles.id` | The article being tagged. |
+| **tag_id** | `int` | PK, FK to `tags.id` | The tag being applied. |
+
+### 3.7. `media_assets`
+
+A registry for all uploaded media files (images and videos).
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | `int` | PK, AI | Unique identifier for the media asset. |
+| type | `enum('image','video')` | | The type of media. |
+| url | `varchar(2048)`| UK | The public URL of the media file. |
+| url_hash | `char(64)` | | A hash of the URL to prevent duplicates. |
+| mime_type | `varchar(128)`| | The MIME type of the file (e.g., `image/jpeg`). |
+| uploaded_by | `int` | FK to `users.id` | The user who uploaded the file. |
+| created_at | `timestamp` | | Timestamp of when the asset was uploaded. |
+
+### 3.8. `article_media`
+
+A junction table to create a many-to-many relationship between `articles` and `media_assets`.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **article_id** | `int` | PK, FK to `articles.id` | The article using the media. |
+| **media_asset_id** | `int`| PK, FK to `media_assets.id` | The media asset being used. |
+
+### 3.9. `comments`
+
+Stores user-submitted comments on articles.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| **id**| `int` | PK, AI | Unique identifier for the comment. |
+| article_id | `int` | FK to `articles.id` | The article the comment was posted on. |
+| user_id | `int` | FK to `users.id` | The user who posted the comment. |
+| body | `text` | | The content of the comment. |
+| created_at | `timestamp` | | Timestamp of when the comment was posted. |
+| updated_at | `timestamp` | | Timestamp of the last update. |
+| edited_at | `datetime` | | Timestamp of when the comment was last edited. |
+| edited_by_user_id | `int` | FK to `users.id` | The user who last edited the comment. |
+| deleted_at | `datetime` | | Timestamp for soft deletion. |
+| deleted_by_user_id| `int` | FK to `users.id` | The user who soft-deleted the comment. |
+
+## 4. Indexes and Constraints
+
+-   **Primary Keys:** Each table has a primary key `id` (or a composite key for junction tables) for unique identification.
+-   **Foreign Keys:** Foreign keys (FK) are used to enforce referential integrity between tables.
+-   **Unique Keys (UK):** Fields like `email`, `code`, and `url` are unique to prevent duplicate entries.
+-   **Full-text Indexes:** A full-text index on `article_translations(title, excerpt, body)` is recommended to optimize search performance.
