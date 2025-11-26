@@ -94,31 +94,48 @@ async function findOrCreateTags(connection, tagCodes, languageCode) {
   return tagIds;
 }
 
- // Utility: derive a simple MIME type from a URL's extension (default to image/jpeg)
-const mimeFromUrl = (url) => {
-  try {
-    if (typeof url !== "string") return "image/jpeg";
-    const u = url.split("?")[0].split("#")[0].toLowerCase();
-    // Images
-    if (u.endsWith(".jpg") || u.endsWith(".jpeg")) return "image/jpeg";
-    if (u.endsWith(".png")) return "image/png";
-    if (u.endsWith(".gif")) return "image/gif";
-    if (u.endsWith(".webp")) return "image/webp";
-    if (u.endsWith(".bmp")) return "image/bmp";
-    if (u.endsWith(".svg")) return "image/svg+xml";
-    // Videos
-    if (u.endsWith(".mp4")) return "video/mp4";
-    if (u.endsWith(".mov")) return "video/quicktime";
-    if (u.endsWith(".webm")) return "video/webm";
-    if (u.endsWith(".mkv")) return "video/x-matroska";
-    if (u.endsWith(".avi")) return "video/x-msvideo";
-    if (u.endsWith(".m4v")) return "video/x-m4v";
-    if (u.endsWith(".mpeg") || u.endsWith(".mpg")) return "video/mpeg";
-    return "image/jpeg";
-  } catch {
-    return "image/jpeg";
-  }
-};
+ // Utility: derive a simple MIME type from a URL's extension or provider
+ // NOTE:
+ // - We keep the default as "image/jpeg" to preserve existing behaviour where
+ //   unknown URLs are treated as images.
+ // - We add special handling for common video providers (e.g. YouTube) so that
+ //   URLs like "https://www.youtube.com/watch?v=..." are recognised as video.
+ const mimeFromUrl = (url) => {
+   try {
+     if (typeof url !== "string") return "image/jpeg";
+
+     const lower = url.toLowerCase();
+     const u = lower.split("?")[0].split("#")[0];
+
+     // Provider-based detection (no reliable file extension)
+     if (u.includes("youtube.com/") || u.includes("youtu.be/")) {
+       // Treat any YouTube URL as a video
+       return "video/youtube";
+     }
+
+     // Images
+     if (u.endsWith(".jpg") || u.endsWith(".jpeg")) return "image/jpeg";
+     if (u.endsWith(".png")) return "image/png";
+     if (u.endsWith(".gif")) return "image/gif";
+     if (u.endsWith(".webp")) return "image/webp";
+     if (u.endsWith(".bmp")) return "image/bmp";
+     if (u.endsWith(".svg")) return "image/svg+xml";
+
+     // Videos (file-extension based)
+     if (u.endsWith(".mp4")) return "video/mp4";
+     if (u.endsWith(".mov")) return "video/quicktime";
+     if (u.endsWith(".webm")) return "video/webm";
+     if (u.endsWith(".mkv")) return "video/x-matroska";
+     if (u.endsWith(".avi")) return "video/x-msvideo";
+     if (u.endsWith(".m4v")) return "video/x-m4v";
+     if (u.endsWith(".mpeg") || u.endsWith(".mpg")) return "video/mpeg";
+
+     // Fallback: keep legacy behaviour (unknown => image)
+     return "image/jpeg";
+   } catch {
+     return "image/jpeg";
+   }
+ };
 
 module.exports = {
   toISO,
