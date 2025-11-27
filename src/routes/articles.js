@@ -1312,6 +1312,85 @@ router.put("/:id/status", authenticate, requireRole(['admin','editor']), async (
   }
 });
 /**
+ * GET /api/articles/:id/comments
+ * List comments for a specific article (public; excludes soft-deleted)
+ *
+ * Response:
+ * [{
+ *   "id": "string",
+ *   "article_id": "string",
+ *   "user_id": "string",
+ *   "author_display_name": "string",
+ *   "body": "string",
+ *   "created_at": "ISO string",
+ *   "updated_at": "ISO string",
+ *   "edited_at": "ISO string|null",
+ *   "edited_by_user_id": "string|null",
+ *   "deleted_at": "ISO string|null",
+ *   "deleted_by_user_id": "string|null"
+ * }]
+ */
+router.get("/:id/comments", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !/^\d+$/.test(id)) {
+      return res.status(400).json({ error: "Invalid article ID" });
+    }
+
+        // Verify the article exists and is published
+        const { rows: articleRows } = await query(
+          "SELECT id FROM articles WHERE id = ? AND status = 'published'",
+          [id]
+        );
+
+    if (!articleRows || articleRows.length === 0) {
+      return res.status(404).json({ error: "Article not found or not published" });
+    }
+
+    const sql = `
+      SELECT
+        c.id,
+        c.article_id,
+        c.user_id,
+        u.display_name AS author_display_name,
+        c.body,
+        c.created_at,
+        c.updated_at,
+        c.edited_at,
+        c.edited_by_user_id,
+        c.deleted_at,
+        c.deleted_by_user_id
+      FROM comments c
+      INNER JOIN users u
+        ON c.user_id = u.id
+      WHERE c.article_id = ? AND c.deleted_at IS NULL
+      ORDER BY c.created_at ASC
+    `;
+
+    const { rows } = await query(sql, [id]);
+
+    const comments = rows.map((comment) => ({
+      id: String(comment.id),
+      article_id: String(comment.article_id),
+      user_id: String(comment.user_id),
+      author_display_name: comment.author_display_name,
+      body: comment.body,
+      created_at: toISO(comment.created_at),
+      updated_at: toISO(comment.updated_at),
+      edited_at: toISO(comment.edited_at),
+      edited_by_user_id: comment.edited_by_user_id ? String(comment.edited_by_user_id) : null,
+      deleted_at: toISO(comment.deleted_at),
+      deleted_by_user_id: comment.deleted_by_user_id ? String(comment.deleted_by_user_id) : null,
+    }));
+
+    res.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments for article:", error);
+    res.status(500).json({ error: "Failed to retrieve comments" });
+  }
+});
+/**
  * GET /api/articles/:id/:lang
  * Retrieve a specific published article by ID for a specific language (path param)
  *
@@ -1650,11 +1729,11 @@ router.get("/:id/comments", async (req, res) => {
       return res.status(400).json({ error: "Invalid article ID" });
     }
 
-    // Verify the article exists and is published
-    const [articleRows] = await query(
-      "SELECT id FROM articles WHERE id = ? AND status = 'published'",
-      [id]
-    );
+        // Verify the article exists and is published
+        const { rows: articleRows } = await query(
+          "SELECT id FROM articles WHERE id = ? AND status = 'published'",
+          [id]
+        );
 
     if (!articleRows || articleRows.length === 0) {
       return res.status(404).json({ error: "Article not found or not published" });
